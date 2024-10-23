@@ -26,18 +26,24 @@ class BallanceRecalculation
     public function recalculate($id_user = null, $cashbox = 'ballance')
     {
         $clbk = function () use ($id_user, $cashbox) {
-            foreach ($this->userRepo->getUsersWhichHasPaymentHistory($id_user, $cashbox) as $user) {
+
+            $users = $this->userRepo->getUsersWhichHasPaymentHistory($id_user, $cashbox);
+
+            foreach ($users as $user) {
+                $cashboxField = $this->getFieldByCashbox($cashbox);
+
+
                 $initialBallance = $this->countInitialBallance(
-                    $user->id, $cashbox, $this->getValByCashbox($user, $cashbox)
+                    $user->{$cashboxField}, $user->payment_history
                 );
 
                 $update = [];
-                foreach ($this->paymentRepo->getUserPaymentInfo($user->id, $cashbox) as $item) {
+                foreach ($user->payment_history as $item) {
                     $sum = $item->sum;
                     $initialBallance = $item->increase == 'up' ? $initialBallance + $sum : $initialBallance - $sum;
 
                     $update[] = [
-                        'id' => $item->id,
+                        'id'       => $item->id,
                         'ballance' => $initialBallance
                     ];
                 }
@@ -45,21 +51,21 @@ class BallanceRecalculation
                 $this->paymentRepo->batchUpdate($update);
             }
         };
-
         $this->transaction($clbk, 2);
     }
 
     /**
      * @param $user
      * @param $cashbox
-     * @return mixed
+     * @return string
      */
-    private function getValByCashbox($user, $cashbox)
+    private function getFieldByCashbox($cashbox)
     {
         return match ($cashbox) {
-            'ballance' => $user->ballance,
-            'deposit' => $user->deposit,
-            //'penalty' => null,
+            'ballance'       => 'ballance',
+            'deposit'        => 'deposit',
+            'penalty'        => 'penalty_ballance',
+            'purchase_limit' => 'purchase_ballance',
         };
     }
 
@@ -69,11 +75,9 @@ class BallanceRecalculation
      * @param $currentBallance
      * @return \Illuminate\Database\Eloquent\HigherOrderBuilderProxy|mixed
      */
-    private function countInitialBallance($id_user, $cashbox, $currentBallance)
+    private function countInitialBallance($currentBallance, $payment_history)
     {
-        $records = $this->paymentRepo->getRecordsByParams(
-            compact('id_user', 'cashbox'), 'id,increase,sum'
-        );
+        $records = $payment_history->sortBy(['date', 'id']);
 
         foreach ($records as $item) {
             $sum = $item->sum;

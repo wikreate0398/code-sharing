@@ -41,6 +41,11 @@ class GoogleSubscriptionAdapter extends AdapterSubscriptionAbstract implements A
         return $this->productId;
     }
 
+    public function getAppId(): ?string
+    {
+        return null;
+    }
+
     public function getPlan(): string
     {
         $plan = $this->getLineItemInfo()->getBasePlanId();

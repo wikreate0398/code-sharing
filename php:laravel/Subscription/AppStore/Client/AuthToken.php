@@ -6,7 +6,7 @@ use Firebase\JWT\JWT;
 
 class AuthToken
 {
-    public function __construct(private $conf)
+    public function __construct(private $conf, private $boundle_id = null)
     {}
 
     public function get()
@@ -26,7 +26,7 @@ class AuthToken
             'iat' => now()->timestamp,
             'exp' => now()->addHours()->timestamp,
             'aud' => 'appstoreconnect-v1',
-            'bid' => $this->conf['boundle_id'],
+            'bid' => $this->boundle_id ?: $this->conf['boundle_id'],
         ];
     }
 

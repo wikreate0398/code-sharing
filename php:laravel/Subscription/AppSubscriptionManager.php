@@ -48,13 +48,13 @@ class AppSubscriptionManager
      * @return $this
      * @throws \Exception
      */
-    public function provider($value)
+    public function provider($value, $bundle_id = null)
     {
         if (!in_array($value, ['apple', 'google'])) {
             throwE('Invalid provider');
         }
 
-        return $value == 'apple' ? $this->appStore() : $this->googlePlay();
+        return $value == 'apple' ? $this->appStore($bundle_id) : $this->googlePlay();
     }
 
     /**
@@ -72,11 +72,12 @@ class AppSubscriptionManager
     /**
      * @return $this
      */
-    public function appStore()
+    public function appStore($boundle_id = null)
     {
         $this->isGooglePlay = false;
+
         $this->client = new AppleSubscriptionClient(
-            AppStoreHttpClient::create(isDev())
+            AppStoreHttpClient::create(isDev(), boundle_id: $boundle_id)
         );
         return $this;
     }
@@ -125,6 +126,19 @@ class AppSubscriptionManager
         return $this->subscription;
     }
 
+    public function getAppleOrderId($identifier = null): array
+    {
+        return $this->client->getOrder($identifier ?: $this->identifier);
+    }
+
+    /**
+     * @return AppSubscriptionClientInterface
+     */
+    public function getClient(): ?AppSubscriptionClientInterface
+    {
+        return $this->client;
+    }
+
     /**
      * @param $requestData
      * @return AdapterSubscriptionInterface|null
@@ -138,7 +152,7 @@ class AppSubscriptionManager
                 $requestData
             );
         } catch (\Exception $e) {
-            logTelegram(exceptionToStr($e));
+            logTelegram(exceptionToStr($e), critical: true);
             throw  $e;
         }
     }

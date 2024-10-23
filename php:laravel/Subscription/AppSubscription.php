@@ -6,8 +6,8 @@ use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static AppSubscriptionManager googlePlay()
- * @method static AppSubscriptionManager appStore()
- * @method static AppSubscriptionManager provider(string $value)
+ * @method static AppSubscriptionManager appStore($bundle_id = null)
+ * @method static AppSubscriptionManager provider(string $value, $bundle_id = null)
  *
  * @see AppSubscriptionManager
  */

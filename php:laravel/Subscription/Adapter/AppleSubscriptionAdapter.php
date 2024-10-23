@@ -28,6 +28,11 @@ class AppleSubscriptionAdapter extends AdapterSubscriptionAbstract implements Ad
         return null;
     }
 
+    public function getAppId(): ?string
+    {
+        return $this->subscriptionPurchase->getTransactionInfo()->getBoundleId();
+    }
+
     public function getPlan(): string
     {
         return $this->subscriptionPurchase->getTransactionInfo()->getProductId();

@@ -2,6 +2,7 @@
 
 namespace App\Services\User\Payment\Logger\Services\Supplier\Ballance;
 
+use App\Services\User\Payment\Enums\PaymentActionEnum;
 use App\Services\User\Payment\Logger\Services\ServiceLog;
 use App\Services\User\Payment\Logger\Services\Traits\BallanceLogServiceTrait;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +15,7 @@ class SupplierBallancePenaltyLogService extends ServiceLog
         protected $id_preorder = null
     ) {}
 
-    protected $logServiceType = 'supplier_penalty';
+    protected $logServiceType = PaymentActionEnum::SUPPLIER_PENALTY;
 
     protected $description = 'Penalty supplier - info';
 
@@ -28,7 +29,6 @@ class SupplierBallancePenaltyLogService extends ServiceLog
         if (!$paymentHistory) {
             DB::table('payment_history')->insert([
                 ...$this->_baseParams(),
-                'id_service'  => $this->getHistoryInfo()->getServiceId(),
                 'id_preorder' => $this->id_preorder
             ]);
             return;

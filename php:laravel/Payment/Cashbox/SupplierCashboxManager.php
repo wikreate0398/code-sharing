@@ -12,6 +12,7 @@ class SupplierCashboxManager extends AbstractUserCashboxManager implements UserC
      */
     public function cashbox(string $cashbox = 'ballance')
     {
+        $this->setCashbox($cashbox);
         $this->logger->cashbox($cashbox);
         $this->cashboxManager = app(BallanceCashbox::class);
     }

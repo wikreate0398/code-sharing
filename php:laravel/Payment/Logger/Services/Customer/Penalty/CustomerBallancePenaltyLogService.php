@@ -1,8 +1,10 @@
 <?php
 
-namespace App\Services\User\Payment\Logger\Services\Customer\Ballance;
+namespace App\Services\User\Payment\Logger\Services\Customer\Penalty;
 
 use App\Repository\Interfaces\PenaltyRepositoryInterface;
+use App\Services\User\Payment\Enums\CashboxEnum;
+use App\Services\User\Payment\Enums\PaymentActionEnum;
 use App\Services\User\Payment\Logger\Services\ServiceLog;
 use App\Services\User\Payment\Logger\Services\Traits\BallanceLogServiceTrait;
 use Illuminate\Support\Facades\DB;
@@ -16,7 +18,7 @@ class CustomerBallancePenaltyLogService extends ServiceLog
         private $status = false
     ) {}
 
-    protected $logServiceType = 'customer_penalty';
+    protected $logServiceType = PaymentActionEnum::CUSTOMER_PENALTY;
 
     protected $description = 'Penalty customer - info';
 
@@ -25,15 +27,12 @@ class CustomerBallancePenaltyLogService extends ServiceLog
         $historyInfo = $this->getHistoryInfo();
         $user = $historyInfo->getUser();
         $paymentHistory = $this->repository()->getPenaltyPaymentHistory(
-            $this->id_preorder, $user->id, 'client'
+            $this->id_preorder, $user->id, 'client', cashbox: CashboxEnum::PENALTY->value
         );
-
-        $id_service = $historyInfo->getServiceId();
 
         if (!$paymentHistory) {
             DB::table('payment_history')->insert([
                 ...$this->_baseParams(),
-                'id_service'  => $id_service,
                 'id_preorder' => $this->id_preorder
             ]);
         } else {

@@ -13,24 +13,60 @@ trait BallanceLogServiceTrait
         $user        = $historyInfo->getUser();
         $date        = $historyInfo->getDate() ?: now();
 
+        $ctx = $historyInfo->getCtx();
+
         return [
-            'id_user'    => $user->id,
-            'increase'   => $historyInfo->getIncrease(),
-            'cashbox'    => $this->getCashbox(),
-            'sum'        => $historyInfo->getAmount(),
-            'ballance'   => $user[$this->_field()],
-            'date'       => $date,
-            'created_at' => $date,
-            'updated_at' => $date,
+            'id_admin'    => $historyInfo->getAdmin()?->id,
+            'id_service'  => $historyInfo->getServiceId(),
+            'id_user'     => $user->id,
+            'increase'    => $historyInfo->getIncrease(),
+            'cashbox'     => $this->getCashbox(),
+            'sum'         => $historyInfo->getAmount(),
+            'ballance'    => $user[$this->_field()],
+            'date'        => $date,
+            'created_at'  => $date,
+            'updated_at'  => $date,
+            'ctx'         => $this->prepareCtx(new: ['date' => now()->format('Y-m-d H:i:s'), ...$ctx])
         ];
     }
 
+    /**
+     * @param array|null $current
+     * @param array|null $new
+     * @return string|null
+     *
+     * Одна запись может несколько раз пересчитываться. Например баланс заказа.
+     * Контекст хранит логи каждого изменения
+     */
+    protected function prepareCtx(array|null $current = null, array|null $new = null): string|null
+    {
+        if (!$current && !$new) return null;
+
+        $data = [];
+
+        if (!empty($current)) {
+            $data = !empty($current[0]) ? $current : [$current];
+        }
+
+        if ($new) {
+            $data[] = [
+                ...$new,
+                'amount'   => $this->getHistoryInfo()->getAmount(),
+                'increase' => $this->getHistoryInfo()->getIncrease(),
+                'ballance' => $this->getUserBallanceFieldVal()
+            ];
+        }
+
+        return json_encode($data);
+    }
 
     private function _field()
     {
         return match ($this->getCashbox()) {
-            'ballance' => 'ballance',
-            'deposit'  => 'deposit'
+            'ballance'       => 'ballance',
+            'deposit'        => 'deposit',
+            'penalty'        => 'penalty_ballance',
+            'purchase_limit' => 'purchase_ballance'
         };
     }
 
@@ -38,7 +74,7 @@ trait BallanceLogServiceTrait
     {
         $historyInfo = $this->getHistoryInfo();
         $id_service  = $historyInfo->getServiceId();
-        $history     = $this->repository()->getHistoryRecordByCond($historyInfo, $id_service);
+        $history     = $this->repository()->getHistoryRecordByCond($historyInfo, $id_service, $this->getCashbox());
 
         if ($history && $historyInfo->getId()) {
             $this->updatePaymentHistory($history);
@@ -67,9 +103,14 @@ trait BallanceLogServiceTrait
             $this->repository()->update([
                 'date'       => $this->getHistoryInfo()->getDate() ?: $existedRecord->date,
                 'sum'        => $sum,
-                'ballance'   => $this->getHistoryInfo()->getUser()[$this->_field()]
+                'ballance'   => $this->getUserBallanceFieldVal()
             ], $existedRecord->id);
         }
+    }
+
+    protected function getUserBallanceFieldVal()
+    {
+        return $this->getHistoryInfo()->getUser()[$this->_field()];
     }
 
     public function calculateSum($currentSum, $sum)

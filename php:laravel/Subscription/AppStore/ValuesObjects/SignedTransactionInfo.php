@@ -36,6 +36,11 @@ class SignedTransactionInfo
         return $this->data['environment'];
     }
 
+    public function getBoundleId()
+    {
+        return $this->data['bundleId'];
+    }
+
     public function getExpiresDate(): ?Time
     {
         return new Time(

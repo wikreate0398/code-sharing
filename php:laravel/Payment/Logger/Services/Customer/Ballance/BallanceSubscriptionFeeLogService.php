@@ -4,6 +4,7 @@ namespace App\Services\User\Payment\Logger\Services\Customer\Ballance;
 
 use App\Models\Payment\PaymentHistory;
 use App\Services\Subscription\Bot\Core\SubscriptionResultDto;
+use App\Services\User\Payment\Enums\PaymentActionEnum;
 use App\Services\User\Payment\Logger\Services\ServiceLog;
 use App\Services\User\Payment\Logger\Services\Traits\BallanceLogServiceTrait;
 use Illuminate\Support\Facades\DB;
@@ -16,7 +17,7 @@ class BallanceSubscriptionFeeLogService extends ServiceLog
         private SubscriptionResultDto $resultDto
     ) {}
 
-    protected $logServiceType = 'subscription_fee';
+    protected $logServiceType = PaymentActionEnum::SUBSCRIPTION_FEE;
 
     protected $description = 'SubscriptionAbstract fee';
 
@@ -61,12 +62,10 @@ class BallanceSubscriptionFeeLogService extends ServiceLog
         if ($sum == 0) {
             $this->repository()->delete($existedRecord->id);
         } else {
-            $ballance = $historyInfo->getUser()->ballance;
-
             $this->repository()->update([
                 'date'       => $historyInfo->getDate() ?: $existedRecord->date,
                 'sum'        => $sum,
-                'ballance'   => $ballance->currentBallance
+                'ballance'   => $this->getUserBallanceFieldVal()
             ], $existedRecord->id);
         }
     }

@@ -3,11 +3,13 @@
 namespace App\Services\User\Payment\Cashbox\SupplierCashbox;
 
 use App\Models\User;
-use App\Services\User\Payment\Cashbox\CashboxInterface;
+use App\Services\User\Payment\Cashbox\AbstractCashbox;
 use App\Services\User\Payment\Cashbox\Traits\BallanceCashboxTrait;
 
-class BallanceCashbox implements CashboxInterface
+class BallanceCashbox extends AbstractCashbox
 {
+    protected $field = 'ballance';
+
     use BallanceCashboxTrait;
 
     /**
@@ -18,7 +20,6 @@ class BallanceCashbox implements CashboxInterface
     protected function saveBallance(User $user, float $newBallance): User
     {
         $user->update(['ballance' => $newBallance]);
-
         return $user;
     }
 }

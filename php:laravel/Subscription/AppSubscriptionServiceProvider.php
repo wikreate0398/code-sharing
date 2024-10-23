@@ -14,7 +14,7 @@ class AppSubscriptionServiceProvider extends ServiceProvider
     {
         $this->app->bind(AppleSubscriptionClient::class, function () {
             return new AppleSubscriptionClient(
-                AppStoreHttpClient::create()
+                AppStoreHttpClient::create(isDev() || isLocal())
             );
         });
 

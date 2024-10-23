@@ -7,10 +7,11 @@ use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static PaymentManager cashbox($type, User $user)
- * @method static PaymentManager openTransaction(callable $callback)
+ * @method static PaymentManager dispatch(\Closure $clbck)
  * @method static PaymentManager ballanceCashbox(User $user)
  * @method static PaymentManager depositCashbox(User $user)
  * @method static PaymentManager penaltyCashbox(User $user)
+ * @method static PaymentManager purchaseLimitCashbox(User $user)
  *
  * @see PaymentManager
  */

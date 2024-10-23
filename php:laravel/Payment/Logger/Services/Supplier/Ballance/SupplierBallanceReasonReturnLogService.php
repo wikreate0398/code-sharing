@@ -3,6 +3,7 @@
 namespace App\Services\User\Payment\Logger\Services\Supplier\Ballance;
 
 use App\Repository\Interfaces\ReasonReturnRepositoryInterface;
+use App\Services\User\Payment\Enums\PaymentActionEnum;
 use App\Services\User\Payment\Logger\Services\ServiceLog;
 use App\Services\User\Payment\Logger\Services\Traits\BallanceLogServiceTrait;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +16,7 @@ class SupplierBallanceReasonReturnLogService extends ServiceLog
         private $id_reason = null
     ) {}
 
-    protected $logServiceType = 'return_products';
+    protected $logServiceType = PaymentActionEnum::RETURN_PRODUCTS;
 
     protected $description = 'Return products - info';
 
@@ -32,7 +33,7 @@ class SupplierBallanceReasonReturnLogService extends ServiceLog
         if (!$existedRecord) {
             DB::table('payment_history')->insert([
                 ...$this->_baseParams(),
-                ...compact('id_service', 'id_reason')
+                'id_reason' => $id_reason
             ]);
         } else {
             $diff = $historyInfo->getAmount();

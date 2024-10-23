@@ -13,7 +13,7 @@ trait BallanceCashboxTrait
      */
     public function charge(User $user, $amount): User
     {
-        $newBallance = $user->ballance + $amount;
+        $newBallance = $user->{$this->field} + $amount;
         return $this->saveBallance($user, $newBallance);
     }
 
@@ -24,7 +24,7 @@ trait BallanceCashboxTrait
      */
     public function extract(User $user, $amount): User
     {
-        $newBallance = $user->ballance - $amount;
+        $newBallance = $user->{$this->field} - $amount;
         return $this->saveBallance($user, $newBallance);
     }
 }

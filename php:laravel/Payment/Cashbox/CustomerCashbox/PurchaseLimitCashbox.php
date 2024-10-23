@@ -6,11 +6,12 @@ use App\Models\User;
 use App\Services\User\Payment\Cashbox\AbstractCashbox;
 use App\Services\User\Payment\Cashbox\Traits\BallanceCashboxTrait;
 
-class PenaltyCashbox extends AbstractCashbox
+class PurchaseLimitCashbox extends AbstractCashbox
 {
-    protected $field = 'penalty_ballance';
+    protected $field = 'purchase_ballance';
 
     use BallanceCashboxTrait;
+
     /**
      * @param  User  $user
      * @param $newBallance

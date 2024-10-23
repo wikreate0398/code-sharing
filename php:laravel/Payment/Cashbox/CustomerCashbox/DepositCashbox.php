@@ -3,31 +3,12 @@
 namespace App\Services\User\Payment\Cashbox\CustomerCashbox;
 
 use App\Models\User;
-use App\Services\User\Payment\Cashbox\CashboxInterface;
+use App\Services\Catalog\P2p\P2pService;
+use App\Services\User\Payment\Cashbox\AbstractCashbox;
 
-class DepositCashbox implements CashboxInterface
+class DepositCashbox extends AbstractCashbox
 {
-    /**
-     * @var float|array|mixed|string
-     */
-    private float $multiplicator;
-
-    /**
-     *
-     */
-    public function __construct()
-    {
-        $this->multiplicator = setting('deposit_multiplicator');
-    }
-
-    /**
-     * @param  User  $user
-     * @return int
-     */
-    private function debtPurchaseLimit(User $user)
-    {
-        return 0;
-    }
+    protected $field = 'deposit';
 
     /**
      * @param  User  $user
@@ -36,12 +17,10 @@ class DepositCashbox implements CashboxInterface
      */
     public function charge(User $user, float $amount): User
     {
-        $debtPurchaseLimit = $this->debtPurchaseLimit($user);
-        $newDeposit = $user->deposit + $amount;
+        $newDeposit = $user->{$this->field} + $amount;
 
         $user->update([
-            'deposit' => $newDeposit,
-            'purchase_ballance' => $user->purchase_ballance + ($amount * $this->multiplicator - $debtPurchaseLimit)
+            "$this->field" => $newDeposit,
         ]);
 
         return $user;
@@ -54,11 +33,10 @@ class DepositCashbox implements CashboxInterface
      */
     public function extract(User $user, float $amount): User
     {
-        $newDeposit = $user->deposit - $amount;
+        $newDeposit = $user->{$this->field} - $amount;
 
         $user->update([
-            'deposit' => $newDeposit,
-            'purchase_ballance' => $user->purchase_ballance - $amount * setting('deposit_multiplicator')
+            "$this->field" => $newDeposit,
         ]);
 
         return $user;

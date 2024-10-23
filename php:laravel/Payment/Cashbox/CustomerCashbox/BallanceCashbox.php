@@ -3,12 +3,13 @@
 namespace App\Services\User\Payment\Cashbox\CustomerCashbox;
 
 use App\Models\User;
-use App\Services\User\Customer\CustomerService;
-use App\Services\User\Payment\Cashbox\CashboxInterface;
+use App\Services\User\Payment\Cashbox\AbstractCashbox;
 use App\Services\User\Payment\Cashbox\Traits\BallanceCashboxTrait;
 
-class BallanceCashbox implements CashboxInterface
+class BallanceCashbox extends AbstractCashbox
 {
+    protected $field = 'ballance';
+
     use BallanceCashboxTrait;
 
     /**
@@ -18,23 +19,7 @@ class BallanceCashbox implements CashboxInterface
      */
     protected function saveBallance(User $user, $newBallance): User
     {
-        $currentBallance = $user->ballance;
-        $user->update(['ballance' => $newBallance]);
-
-        if ($newBallance >= 0 && $currentBallance < 0 && !$user->inBlackList()) {
-            app(CustomerService::class)->switchStatus(
-                $user->id,
-                $user->prev_status ?: 'active'
-            );
-        }
-
-        if($newBallance < 0 && !$user->inBlackList()){
-            app(CustomerService::class)->switchStatus(
-                $user->id,
-                'blocked'
-            );
-        }
-
+        $user->update([$this->field => $newBallance]);
         return $user;
     }
 }

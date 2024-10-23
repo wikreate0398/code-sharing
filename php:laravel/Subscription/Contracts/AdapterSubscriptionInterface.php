@@ -17,6 +17,8 @@ interface AdapterSubscriptionInterface
      */
     public function getProductId(): ?string;
 
+    public function getAppId(): ?string;
+
     public function getPlan(): string;
 
     public function getStartDate(): Carbon;

@@ -12,6 +12,11 @@ class LogHistoryInfo implements LogHistoryInfoInterface
     private $user;
 
     /**
+     * @var User|null
+     */
+    private $admin;
+
+    /**
      * @var string
      */
     private $increase;
@@ -37,12 +42,27 @@ class LogHistoryInfo implements LogHistoryInfoInterface
     private $id_service;
 
     /**
+     * @var array
+     */
+    private $ctx = [];
+
+    /**
      * @param  User  $user
      * @return $this
      */
     public function setUser(User $user): self
     {
         $this->user = $user;
+        return $this;
+    }
+
+    /**
+     * @param  User  $admin
+     * @return $this
+     */
+    public function setAdmin(?User $admin): self
+    {
+        $this->admin = $admin;
         return $this;
     }
 
@@ -72,7 +92,12 @@ class LogHistoryInfo implements LogHistoryInfoInterface
      */
     public function setDate(mixed $value): self
     {
-        $this->date = carbonCreate($value, 'Y-m-d H:i:s');
+        $his = carbonCreate($value, "H:i:s");
+        if ($his == '00:00:00') {
+            $his = now()->format('H:i:s');
+        }
+
+        $this->date = carbonCreate($value) . " $his";
         return $this;
     }
 
@@ -97,11 +122,29 @@ class LogHistoryInfo implements LogHistoryInfoInterface
     }
 
     /**
+     * @param array $ctx
+     * @return $this
+     */
+    public function setCtx(array $ctx = []): self
+    {
+        $this->ctx = $ctx;
+        return $this;
+    }
+
+    /**
      * @return User
      */
     public function getUser(): User
     {
         return $this->user;
+    }
+
+    /**
+     * @return User
+     */
+    public function getAdmin(): ?User
+    {
+        return $this->admin;
     }
 
     /**
@@ -136,8 +179,19 @@ class LogHistoryInfo implements LogHistoryInfoInterface
         return $this->id;
     }
 
+    /**
+     * @return int
+     */
     public function getServiceId(): int
     {
         return $this->id_service;
+    }
+
+    /**
+     * @return array
+     */
+    public function getCtx(): array
+    {
+        return $this->ctx;
     }
 }
