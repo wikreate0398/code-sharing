@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"wikreate/fimex/internal/domain"
-	"wikreate/fimex/internal/transport/messagebus/handlers"
+	"wikreate/fimex/internal/domain/core"
+	"wikreate/fimex/internal/transport/messagebus/consumers"
 	"wikreate/fimex/pkg/lifecycle"
 	"wikreate/fimex/pkg/rabbitmq"
 )
 
-func Init(application *domain.Application) func(lf *lifecycle.Lifecycle) {
+func Init(application *core.Application) func(lf *lifecycle.Lifecycle) {
 	return func(lf *lifecycle.Lifecycle) {
 
 		lf.Append(lifecycle.AppendLifecycle{
@@ -18,7 +18,7 @@ func Init(application *domain.Application) func(lf *lifecycle.Lifecycle) {
 				fmt.Println("Message bus Init")
 
 				ctx, cancel := context.WithCancel(ctx)
-				core := handlers.NewHandlers()
+				queues := consumers.NewHandlers(application)
 
 				conf := application.Config.RabbitMQ
 				rbMq := rabbitmq.InitRabbitMQ(rabbitmq.Credentials{
@@ -33,12 +33,12 @@ func Init(application *domain.Application) func(lf *lifecycle.Lifecycle) {
 				wg := new(sync.WaitGroup)
 
 				// Listners...
-				rbMq.Listen(rabbitmq.ListenInput{
+				rbMq.Listen(rabbitmq.ListnerInput{
 					Ctx:        ctx,
 					Exchange:   "catalog",
 					QueueName:  "generate_names",
 					RoutingKey: "",
-					Resolver:   core.CatalogHandler.GenerateNames,
+					Resolver:   queues.GenerateNamesQueue,
 					Wg:         wg,
 				})
 				

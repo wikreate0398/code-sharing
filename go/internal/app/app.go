@@ -1,28 +1,36 @@
 package app
 
 import (
+	"context"
 	"wikreate/fimex/internal/config"
-	"wikreate/fimex/internal/domain"
+	"wikreate/fimex/internal/domain/core"
 	"wikreate/fimex/internal/repository"
-	"wikreate/fimex/internal/service"
+	"wikreate/fimex/internal/services"
 	"wikreate/fimex/internal/transport/messagebus"
 	"wikreate/fimex/internal/transport/rest"
+	"wikreate/fimex/pkg/database"
 	"wikreate/fimex/pkg/database/mysql"
 	"wikreate/fimex/pkg/lifecycle"
 )
 
-func NewApplication(deps domain.AppDeps) *domain.Application {
-	return &domain.Application{AppDeps: deps}
+func NewApplication(deps core.AppDeps) *core.Application {
+	return &core.Application{AppDeps: deps}
 }
 
 func Make(cfg *config.Config) {
-	db := mysql.NewClient(cfg.Databases.MySql)
-	repo := repository.NewRepository(db)
-	serv := service.NewService(repo, db)
 
-	app := NewApplication(domain.AppDeps{
-		Repository: repository.NewRepository(db),
-		Db:         db,
+	ctx := context.Background()
+
+	dbConf := cfg.Databases.MySql
+	dbManager := database.NewDBManager(ctx, mysql.DBCreds{
+		dbConf.Host, dbConf.Port, dbConf.User, dbConf.Password, dbConf.Database,
+	})
+
+	repo := repository.NewRepository(dbManager)
+	serv := services.NewService(repo)
+
+	app := NewApplication(core.AppDeps{
+		Repository: repo,
 		Service:    serv,
 		Config:     cfg,
 	})

@@ -1,18 +1,21 @@
 package repository
 
-import "github.com/jmoiron/sqlx"
+import (
+	"wikreate/fimex/pkg/database"
+)
 
 type Deps struct {
-	db *sqlx.DB
+	DbManager database.DbManager
 }
 
 type Repository struct {
-	productRepository ProductStorage
+	ProductRepo *ProductRepositoryImpl
 }
 
-func NewRepository(db *sqlx.DB) *Repository {
-	deps := &Deps{db}
+func NewRepository(dbManager database.DbManager) *Repository {
+	deps := &Deps{dbManager}
+
 	return &Repository{
-		productRepository: NewProductStorage(deps),
+		ProductRepo: NewProductRepository(deps),
 	}
 }

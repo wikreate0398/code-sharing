@@ -1,20 +1,28 @@
 package repository
 
-type ProductStorage struct {
-	Deps
+import (
+	"fmt"
+	"wikreate/fimex/internal/domain/structure"
+)
+
+type ProductRepositoryImpl struct {
+	deps *Deps
 }
 
-type ProductForRefreshNames struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
+func NewProductRepository(deps *Deps) *ProductRepositoryImpl {
+	return &ProductRepositoryImpl{deps}
 }
 
-func NewProductStorage(deps *Deps) ProductStorage {
-	return ProductStorage{Deps: *deps}
-}
+func (p ProductRepositoryImpl) GetAllIds(payload *structure.GenerateNamesPayloadInput) []structure.ProductIds {
+	var product []structure.ProductIds
 
-func (p ProductStorage) GetProductsForRefreshNames() ProductForRefreshNames {
-	var product ProductForRefreshNames
-	p.db.Get(&product, "SELECT id, name FROM products WHERE id = 1000")
+	var query string
+
+	if payload.IdGroup > 0 {
+		query += fmt.Sprintf("where EXISTS(SELECT * FROM categories where id = id_subcategory and id_group = %v)", payload.IdGroup)
+	}
+
+	p.deps.DbManager.Select(&product, fmt.Sprintf("SELECT id FROM products %v", query))
+	
 	return product
 }

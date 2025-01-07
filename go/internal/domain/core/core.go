@@ -1,16 +1,14 @@
-package domain
+package core
 
 import (
-	"github.com/jmoiron/sqlx"
 	"wikreate/fimex/internal/config"
 	"wikreate/fimex/internal/repository"
-	"wikreate/fimex/internal/service"
+	"wikreate/fimex/internal/services"
 )
 
 type AppDeps struct {
 	Repository *repository.Repository
-	Db         *sqlx.DB
-	Service    *service.Service
+	Service    *services.Service
 	Config     *config.Config
 }
 

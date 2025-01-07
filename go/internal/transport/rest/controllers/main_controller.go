@@ -2,14 +2,14 @@ package controllers
 
 import (
 	"github.com/gin-gonic/gin"
-	"wikreate/fimex/internal/domain"
+	"wikreate/fimex/internal/domain/core"
 )
 
 type MainController struct {
 	BaseController
 }
 
-func NewMainController(application *domain.Application) *MainController {
+func NewMainController(application *core.Application) *MainController {
 	return &MainController{
 		BaseController{application},
 	}

@@ -3,14 +3,14 @@ package rest
 import (
 	"context"
 	"net/http"
-	"wikreate/fimex/internal/domain"
+	"wikreate/fimex/internal/domain/core"
 	"wikreate/fimex/pkg/failed"
 	"wikreate/fimex/pkg/lifecycle"
 	"wikreate/fimex/pkg/logger"
 	"wikreate/fimex/pkg/server"
 )
 
-func Init(app *domain.Application) func(lf *lifecycle.Lifecycle) {
+func Init(app *core.Application) func(lf *lifecycle.Lifecycle) {
 	return func(lf *lifecycle.Lifecycle) {
 
 		obj := server.NewServer(InitRouter(app), app.Config)
@@ -25,7 +25,7 @@ func Init(app *domain.Application) func(lf *lifecycle.Lifecycle) {
 
 			OnStop: func(ctx context.Context) any {
 				err := obj.Stop(ctx)
-				failed.PanicOnError(err, "Failed to stop service")
+				failed.PanicOnError(err, "Failed to stop services")
 				return nil
 			},
 		})

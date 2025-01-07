@@ -8,8 +8,8 @@ import (
 
 type Config struct {
 	// .env
-	Databases
-	RabbitMQ
+	Databases Databases
+	RabbitMQ  RabbitMQ
 
 	//.yaml
 	Server `mapstructure:"server"`

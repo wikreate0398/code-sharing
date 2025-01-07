@@ -1,12 +1,14 @@
 package controllers
 
-import "wikreate/fimex/internal/domain"
+import (
+	"wikreate/fimex/internal/domain/core"
+)
 
 type Controllers struct {
 	MainController *MainController
 }
 
-func NewControllers(application *domain.Application) *Controllers {
+func NewControllers(application *core.Application) *Controllers {
 	return &Controllers{
 		MainController: NewMainController(application),
 	}

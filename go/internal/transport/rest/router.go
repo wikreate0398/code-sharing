@@ -2,12 +2,12 @@ package rest
 
 import (
 	"github.com/gin-gonic/gin"
-	"wikreate/fimex/internal/domain"
+	"wikreate/fimex/internal/domain/core"
 	"wikreate/fimex/internal/transport/rest/controllers"
 	"wikreate/fimex/internal/transport/rest/middleware"
 )
 
-func InitRouter(app *domain.Application) *gin.Engine {
+func InitRouter(app *core.Application) *gin.Engine {
 
 	handlers := controllers.NewControllers(app)
 

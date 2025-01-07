@@ -13,6 +13,15 @@ type RabbitMQ struct {
 	ch   *amqp.Channel
 }
 
+type ListnerInput struct {
+	Ctx        context.Context
+	Exchange   string
+	QueueName  string
+	RoutingKey string
+	Resolver   Resolver
+	Wg         *sync.WaitGroup
+}
+
 type Resolver interface {
 	Handle()
 	ToStruct(result []byte)
@@ -40,27 +49,18 @@ func (r *RabbitMQ) queueDeclare(exchange string, queueName string, routingKey st
 	q, err := r.ch.QueueDeclare(
 		queueName, false, false, false, false, nil,
 	)
-	failed.PanicOnError(err, fmt.Sprintf("Failed to declare a queue %s", queueName))
+	failed.PanicOnError(err, fmt.Sprintf("Failed to declare a consumers %s", queueName))
 
 	err = r.ch.QueueBind(queueName, routingKey, exchange, false, nil)
 	failed.PanicOnError(
 		err,
-		fmt.Sprintf("Failed to bind a queue %s %s with routing key: %s", queueName, exchange, routingKey),
+		fmt.Sprintf("Failed to bind a consumers %s %s with routing key: %s", queueName, exchange, routingKey),
 	)
 
 	return q
 }
 
-type ListenInput struct {
-	Ctx        context.Context
-	Exchange   string
-	QueueName  string
-	RoutingKey string
-	Resolver   Resolver
-	Wg         *sync.WaitGroup
-}
-
-func (r *RabbitMQ) Listen(input ListenInput) {
+func (r *RabbitMQ) Listen(input ListnerInput) {
 	input.Wg.Add(1)
 	go func() {
 		defer input.Wg.Done()
@@ -70,7 +70,7 @@ func (r *RabbitMQ) Listen(input ListenInput) {
 		msgs, err := r.ch.Consume(
 			q.Name, "", true, false, false, false, nil,
 		)
-		failed.PanicOnError(err, fmt.Sprintf("Failed to register a consumer %s", q.Name))
+		failed.PanicOnError(err, fmt.Sprintf("Failed to register a consumers %s", q.Name))
 
 		for {
 			select {
