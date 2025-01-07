@@ -33,14 +33,14 @@ func NewClient(ctx context.Context, dbConf DBCreds) *sqlx.DB {
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-
+	
 	db, err := sqlx.ConnectContext(ctx, "mysql", dsn)
 	failed.PanicOnError(err, "Failed to connect to the database")
 
 	db.SetMaxOpenConns(maxSqlDBOpenConns)
 	db.SetMaxIdleConns(maxSqlDBIdleConns)
 	db.SetConnMaxLifetime(sqlDBConnMaxLifetime)
-	
+
 	err = db.PingContext(ctx)
 	failed.PanicOnError(err, "Failed to ping the database")
 

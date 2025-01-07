@@ -1,21 +1,23 @@
 package repository
 
 import (
-	"wikreate/fimex/pkg/database"
+	"wikreate/fimex/internal/domain/interfaces"
 )
 
 type Deps struct {
-	DbManager database.DbManager
+	DbManager interfaces.DbManager
 }
 
 type Repository struct {
-	ProductRepo *ProductRepositoryImpl
+	ProductRepo     *ProductRepositoryImpl
+	ProductCharRepo *ProductCharRepositoryImpl
 }
 
-func NewRepository(dbManager database.DbManager) *Repository {
+func NewRepository(dbManager interfaces.DbManager) *Repository {
 	deps := &Deps{dbManager}
 
 	return &Repository{
-		ProductRepo: NewProductRepository(deps),
+		ProductRepo:     NewProductRepository(deps),
+		ProductCharRepo: NewProductCharRepository(deps),
 	}
 }

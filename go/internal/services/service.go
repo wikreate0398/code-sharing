@@ -10,5 +10,9 @@ type Service struct {
 }
 
 func NewService(repository *repository.Repository) *Service {
-	return &Service{ProductService: product_service.NewProductService(repository.ProductRepo)}
+	deps := &product_service.Deps{
+		ProductRepository:     repository.ProductRepo,
+		ProductCharRepository: repository.ProductCharRepo,
+	}
+	return &Service{ProductService: product_service.NewProductService(deps)}
 }
