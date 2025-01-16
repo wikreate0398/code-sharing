@@ -1,17 +1,23 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"wikreate/fimex/internal/app"
 	"wikreate/fimex/internal/config"
-	"wikreate/fimex/pkg/failed"
 	"wikreate/fimex/pkg/logger"
 )
 
 func main() {
-	logger.Init()
+	log, err := logger.NewLogger()
+
+	if err != nil {
+		fmt.Println("Error initializing logger:", err)
+		os.Exit(1)
+	}
 
 	cfg, err := config.Init("stage")
-	failed.PanicOnError(err, "Failed to initialize config")
+	log.FatalOnErr(err, "Failed to initialize config")
 
-	app.Make(cfg)
+	app.Make(cfg, log)
 }

@@ -3,64 +3,63 @@ package logger
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"io"
 	"os"
 	"time"
 )
 
-func Init() {
-	log.SetFormatter(&log.JSONFormatter{})
-	fileName := fmt.Sprintf("logs/logs-%s.log", time.Now().Format("2006-01-02"))
+var (
+	logsDir = "logs"
+)
+
+func NewLogger() (*LoggerManager, error) {
+	if err := createDir(); err != nil {
+		return nil, err
+	}
+
+	file, err := openFile()
+
+	if err != nil {
+		return nil, err
+	}
+
+	logger := log.New()
+	logger.SetFormatter(&log.JSONFormatter{})
+	logger.SetReportCaller(true)
+	logger.SetLevel(log.TraceLevel)
+	logger.SetOutput(io.MultiWriter(file, os.Stdout))
+
+	return &LoggerManager{logger: logger}, nil
+}
+
+func createDir() error {
+	if _, err := os.Stat(logsDir); os.IsNotExist(err) {
+		if err := os.Mkdir(logsDir, 0755); err != nil {
+			return fmt.Errorf("cannot create logs directory: %w", err)
+		}
+
+		file, err := os.Create(fmt.Sprintf("%s/.gitignore", logsDir))
+		if err != nil {
+			return fmt.Errorf("cannot create .gitignore: %w", err)
+		}
+
+		defer file.Close()
+
+		if _, err = file.WriteString("!.gitignore\n*"); err != nil {
+			return fmt.Errorf("cannot create .gitignore: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func openFile() (*os.File, error) {
+	fileName := fmt.Sprintf("%s/logs-%s.log", logsDir, time.Now().Format("2006-01-02"))
 	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err == nil {
-		log.SetOutput(file)
-	} else {
-		log.Warn("Не удалось открыть файл логов, используется вывод в консоль")
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to open log file: %w", err)
 	}
-}
 
-type LogFields log.Fields
-
-type LogInput struct {
-	Msg    interface{}
-	Params LogFields
-}
-
-func Info(input LogInput) {
-	if len(input.Params) > 0 {
-		log.WithFields(log.Fields(input.Params)).Info(input.Msg)
-	} else {
-		log.Info(input.Msg)
-	}
-}
-
-func Debug(input LogInput) {
-	if len(input.Params) > 0 {
-		log.WithFields(log.Fields(input.Params)).Debug(input.Msg)
-	} else {
-		log.Debug(input.Msg)
-	}
-}
-
-func Warn(input LogInput) {
-	if len(input.Params) > 0 {
-		log.WithFields(log.Fields(input.Params)).Warn(input.Msg)
-	} else {
-		log.Warn(input.Msg)
-	}
-}
-
-func Error(input LogInput) {
-	if len(input.Params) > 0 {
-		log.WithFields(log.Fields(input.Params)).Error(input.Msg)
-	} else {
-		log.Error(input.Msg)
-	}
-}
-
-func Panic(input LogInput) {
-	if len(input.Params) > 0 {
-		log.WithFields(log.Fields(input.Params)).Panic(input.Msg)
-	} else {
-		log.Panic(input.Msg)
-	}
+	return file, nil
 }
