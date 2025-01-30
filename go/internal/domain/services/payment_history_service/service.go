@@ -19,10 +19,10 @@ type Deps struct {
 }
 
 type PaymentHistoryService struct {
-	deps *Deps
+	deps Deps
 }
 
-func NewPaymentHistoryService(deps *Deps) *PaymentHistoryService {
+func NewPaymentHistoryService(deps Deps) *PaymentHistoryService {
 	return &PaymentHistoryService{deps: deps}
 }
 
@@ -49,8 +49,7 @@ func (s PaymentHistoryService) RecalcBallances(payload *payment_dto.RecalcBallan
 		for _, user := range users {
 			pool.AddJob(func(user user_dto.UserQueryDto, cashboxType payment_vo.Cashbox) func() {
 				return func() {
-					var userEntity = user_entity.NewUser()
-					userEntity.FillFromDto(user)
+					var userEntity = user_entity.NewUser(user)
 
 					history, err := s.deps.PaymentHistoryRepo.SelectUserHistory(userEntity.ID(), cashboxType)
 
@@ -61,12 +60,17 @@ func (s PaymentHistoryService) RecalcBallances(payload *payment_dto.RecalcBallan
 						)
 					}
 
+					if len(history) <= 0 {
+						return
+					}
+
 					userEntity.SetPaymentHistory(history)
 
 					var initialBallance = userEntity.CountInitialBallance(cashboxType)
-					inserts := make([]payment_dto.PaymentHistoryBallanceStoreDto, 0, len(*history))
 
-					for _, item := range *userEntity.PaymentsHistory() {
+					inserts := make([]payment_dto.PaymentHistoryBallanceStoreDto, 0, len(history))
+
+					for _, item := range userEntity.PaymentsHistory() {
 						if item.Increase().IsUp() {
 							initialBallance += item.Sum()
 						} else {
@@ -79,9 +83,9 @@ func (s PaymentHistoryService) RecalcBallances(payload *payment_dto.RecalcBallan
 						})
 					}
 
-					//if userEntity.ID() == 4418 && cashboxType.String() == "ballance" {
-					//	fmt.Printf("%+v %+v. ", inserts[0].Ballance, inserts[0].ID)
-					//}
+					if len(inserts) > 0 {
+						s.deps.PaymentHistoryRepo.BatchUpdate(inserts, "id")
+					}
 				}
 			}(user, val))
 		}
@@ -90,5 +94,5 @@ func (s PaymentHistoryService) RecalcBallances(payload *payment_dto.RecalcBallan
 	pool.Stop()
 	pool.Wait()
 
-	fmt.Println(time.Since(start))
+	fmt.Println("payment history", time.Since(start))
 }
