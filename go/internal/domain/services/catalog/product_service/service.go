@@ -1,8 +1,9 @@
 package product_service
 
 import (
-	"cmp"
+	"context"
 	"fmt"
+	"go.uber.org/fx"
 	"math"
 	"runtime"
 	"slices"
@@ -12,29 +13,39 @@ import (
 	"sync"
 	"time"
 	"wikreate/fimex/internal/domain/entities/catalog/product"
+	"wikreate/fimex/internal/domain/interfaces"
 	"wikreate/fimex/internal/domain/structure/dto/catalog_dto"
 	"wikreate/fimex/internal/helpers"
 	"wikreate/fimex/pkg/workerpool"
 )
 
-type Deps struct {
+type Params struct {
+	fx.In
+
 	ProductRepository     ProductRepository
 	ProductCharRepository ProductCharRepository
+	Logger                interfaces.Logger
 }
 
 type ProductService struct {
-	deps Deps
+	*Params
 }
 
-func NewProductService(deps Deps) *ProductService {
-	return &ProductService{deps: deps}
+func NewProductService(params Params) *ProductService {
+	return &ProductService{&params}
 }
 
-func (s ProductService) GenerateNames(payload *catalog_dto.GenerateNamesInputDto) {
-	start := time.Now()
+func (s ProductService) GenerateNames(ctx context.Context, payload *catalog_dto.GenerateNamesInputDto) {
+	//start := time.Now()
+
+	total, err := s.ProductRepository.CountTotalForGenerateNames(ctx, payload)
+
+	if err != nil {
+		s.Logger.Errorf("Error counting total for generate names: %s", err.Error())
+		return
+	}
 
 	var (
-		total      = s.deps.ProductRepository.CountTotalForGenerateNames(payload)
 		limit      = 700
 		iterations = int(math.Ceil(float64(total) / float64(limit)))
 	)
@@ -46,10 +57,24 @@ func (s ProductService) GenerateNames(payload *catalog_dto.GenerateNamesInputDto
 	for i := 0; i < iterations; i++ {
 		pool.AddJob(func(i int) func() {
 			return func() {
-				ids := s.deps.ProductRepository.GetIdsForGenerateNames(payload, limit, i*limit)
+				var logFields = helpers.KeyStrValue{
+					"payload": payload,
+				}
+
+				ids, err := s.ProductRepository.GetIdsForGenerateNames(ctx, payload, limit, i*limit)
+
+				if err != nil {
+					s.Logger.WithFields(logFields).Errorf("Error getting ids for generate names: %s", err.Error())
+					return
+				}
+
 				grouped := make(map[any][]catalog_dto.ProductCharQueryDto)
 
-				data := s.deps.ProductCharRepository.GetByProductIds(ids)
+				data, err := s.ProductCharRepository.GetByProductIds(ctx, ids)
+
+				if err != nil {
+					s.Logger.WithFields(logFields).Errorf("Error getting product chars: %s", err.Error())
+				}
 
 				for _, char := range data {
 					grouped[char.IdProduct] = append(grouped[char.IdProduct], char)
@@ -82,7 +107,9 @@ func (s ProductService) GenerateNames(payload *catalog_dto.GenerateNamesInputDto
 				}
 
 				if len(insert) > 0 {
-					s.deps.ProductRepository.UpdateNames(insert, "id")
+					if err := s.ProductRepository.UpdateNames(ctx, insert, "id"); err != nil {
+						s.Logger.WithFields(logFields).Errorf("Error updating product names: %s", err.Error())
+					}
 				}
 			}
 		}(i))
@@ -92,11 +119,11 @@ func (s ProductService) GenerateNames(payload *catalog_dto.GenerateNamesInputDto
 
 	pool.Stop()
 
-	fmt.Println("GenerateNames", time.Since(start))
+	//s.Logger.Info(fmt.Sprintf("GenerateNames %v", time.Since(start)))
 }
 
-func (s ProductService) Sort() {
-	start := time.Now()
+func (s ProductService) Sort(ctx context.Context) {
+	//start := time.Now()
 
 	type job struct {
 		products  []catalog_dto.ProductSortQueryDto
@@ -123,22 +150,18 @@ func (s ProductService) Sort() {
 				var insert []catalog_dto.ProductSortStoreDto
 
 				sort.Slice(subcatProducts, func(a, b int) bool {
-					var aProd = subcatProducts[a]
-					var bProd = subcatProducts[b]
+					var aPup = strings.Split(subcatProducts[a].Position.String, ",")
+					var bPup = strings.Split(subcatProducts[b].Position.String, ",")
 
-					var aPup = strings.Split(aProd.Position.String, ",")
-					var bPup = strings.Split(bProd.Position.String, ",")
-
-					for key := 0; key < len(aPup) && key < len(bPup); key++ {
-						aVal, _ := strconv.Atoi(aPup[key])
-						bVal, _ := strconv.Atoi(bPup[key])
+					for k := 0; k < len(aPup) && k < len(bPup); k++ {
+						aVal, _ := strconv.Atoi(aPup[k])
+						bVal, _ := strconv.Atoi(bPup[k])
 
 						if aVal != bVal {
 							return aVal < bVal
 						}
 					}
-
-					return len(aPup) < len(bPup)
+					return false
 				})
 
 				for _, prod := range subcatProducts {
@@ -150,7 +173,9 @@ func (s ProductService) Sort() {
 					iteration++
 				}
 
-				s.deps.ProductRepository.UpdatePosition(insert, "id")
+				if err := s.ProductRepository.UpdatePosition(ctx, insert, "id"); err != nil {
+					s.Logger.Errorf("Error updating product position: %s", err.Error())
+				}
 			}
 		}()
 	}
@@ -159,15 +184,12 @@ func (s ProductService) Sort() {
 		grouped := make(map[any][]catalog_dto.ProductSortQueryDto)
 		var orderedKeys []string
 
-		var data = s.deps.ProductRepository.GetForSort()
+		var data, err = s.ProductRepository.GetForSort(ctx)
 
-		slices.SortFunc(data, func(a, b catalog_dto.ProductSortQueryDto) int {
-			return cmp.Or(
-				cmp.Compare(a.BrandPosition, b.BrandPosition),
-				cmp.Compare(a.CatPosition, b.CatPosition),
-				cmp.Compare(a.SubCatPosition, b.SubCatPosition),
-			)
-		})
+		if err != nil {
+			s.Logger.Errorf("Error get products for sort : %s", err.Error())
+			return
+		}
 
 		for _, prod := range data {
 			var key = fmt.Sprintf("%v.%v.%v", prod.IdBrand, prod.IdCategory, prod.IdSubcategory)
@@ -180,10 +202,11 @@ func (s ProductService) Sort() {
 		}
 
 		var num = 1
-		for i, key := range orderedKeys {
+		for _, key := range orderedKeys {
 			var products = grouped[key]
+
 			jobs <- job{products: products, iteration: num}
-			num = i * (len(products) + 1)
+			num += len(products)
 		}
 
 		close(jobs)
@@ -191,5 +214,5 @@ func (s ProductService) Sort() {
 
 	wg.Wait()
 
-	fmt.Println("sort", time.Since(start))
+	//s.Logger.Info(fmt.Sprintf("Sort Products %v", time.Since(start)))
 }

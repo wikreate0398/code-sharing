@@ -1,17 +1,16 @@
 package interfaces
 
 import (
+	"context"
 	"database/sql"
-	"github.com/jmoiron/sqlx"
 )
 
-type DbManager interface {
-	GetDB() *sqlx.DB
+type DB interface {
+	Get(ctx context.Context, entity interface{}, query string, args ...interface{}) error
+	Select(ctx context.Context, entity interface{}, query string, args ...interface{}) error
+	Query(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	NamedExec(ctx context.Context, query string, args interface{}) error
+	BatchUpdate(ctx context.Context, table string, identifier string, arg interface{}) (sql.Result, error)
 
-	Get(entity interface{}, query string, args ...interface{})
-	Select(entity interface{}, query string, args ...interface{})
-	Query(query string, args ...any) *sql.Rows
-
-	NamedExec(query string, args interface{})
-	BatchUpdate(table string, identifier string, arg interface{}) sql.Result
+	Transaction(ctx context.Context, fnc func(ctx context.Context) error) error
 }
