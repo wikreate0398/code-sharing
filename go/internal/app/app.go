@@ -12,6 +12,7 @@ import (
 )
 
 func Create() {
+
 	fx.New(
 		infrastructure.Module,
 		domain_services.Module,

@@ -3,6 +3,7 @@ package product_repository
 import (
 	"context"
 	"fmt"
+	"github.com/jmoiron/sqlx"
 	"wikreate/fimex/internal/domain/interfaces"
 	"wikreate/fimex/internal/domain/structure/dto/catalog_dto"
 	"wikreate/fimex/internal/helpers"
@@ -25,7 +26,13 @@ func (p ProductRepositoryImpl) GetIdsForGenerateNames(ctx context.Context, paylo
 
 	var query = fmt.Sprintf("select id from products %s order by id asc LIMIT ? OFFSET ?", helpers.PrependStr(cond, "where"))
 
-	if err := p.db.Select(ctx, &ids, query, args...); err != nil {
+	query, args, err := sqlx.In(query, args...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := p.db.SelectCtx(ctx, &ids, query, args...); err != nil {
 		return nil, err
 	}
 
@@ -38,7 +45,13 @@ func (p ProductRepositoryImpl) CountTotalForGenerateNames(ctx context.Context, p
 	var total int
 	var query = fmt.Sprintf("select count(*) from products %s", helpers.PrependStr(cond, "where"))
 
-	if err := p.db.Get(ctx, &total, query, args...); err != nil {
+	query, args, err := sqlx.In(query, args...)
+
+	if err != nil {
+		return 0, err
+	}
+
+	if err := p.db.GetCtx(ctx, &total, query, args...); err != nil {
 		return 0, err
 	}
 
@@ -77,7 +90,7 @@ func (p ProductRepositoryImpl) GetForSort(ctx context.Context) ([]catalog_dto.Pr
 
 	var dto []catalog_dto.ProductSortQueryDto
 
-	if err := p.db.Select(ctx, &dto, query); err != nil {
+	if err := p.db.SelectCtx(ctx, &dto, query); err != nil {
 		return nil, err
 	}
 
@@ -85,11 +98,11 @@ func (p ProductRepositoryImpl) GetForSort(ctx context.Context) ([]catalog_dto.Pr
 }
 
 func (p ProductRepositoryImpl) UpdateNames(ctx context.Context, arg interface{}, identifier string) error {
-	_, err := p.db.BatchUpdate(ctx, "products", identifier, arg)
+	_, err := p.db.BatchUpdateCtx(ctx, "products", identifier, arg)
 	return err
 }
 
 func (p ProductRepositoryImpl) UpdatePosition(ctx context.Context, arg interface{}, identifier string) error {
-	_, err := p.db.BatchUpdate(ctx, "products", identifier, arg)
+	_, err := p.db.BatchUpdateCtx(ctx, "products", identifier, arg)
 	return err
 }

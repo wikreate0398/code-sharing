@@ -4,7 +4,7 @@ import (
 	"context"
 	"wikreate/fimex/internal/config"
 	"wikreate/fimex/internal/domain/interfaces"
-	"wikreate/fimex/internal/infrastructure/adapters/db_adapter"
+	"wikreate/fimex/internal/infrastructure/adapter/db_adapter"
 	"wikreate/fimex/pkg/mysql"
 )
 

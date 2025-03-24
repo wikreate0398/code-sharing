@@ -2,7 +2,7 @@ package product
 
 import (
 	"wikreate/fimex/internal/domain/structure/dto/catalog_dto"
-	"wikreate/fimex/internal/infrastructure/adapters/emoji"
+	"wikreate/fimex/internal/infrastructure/adapter/emoji"
 )
 
 type ProductChar struct {

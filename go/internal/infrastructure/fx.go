@@ -5,12 +5,12 @@ import (
 	"wikreate/fimex/internal/config"
 	"wikreate/fimex/internal/infrastructure/db"
 	"wikreate/fimex/internal/infrastructure/logger"
-	"wikreate/fimex/internal/infrastructure/storage/repositories"
+	"wikreate/fimex/internal/infrastructure/storage/repository"
 )
 
 var Module = fx.Module("infrastructure",
 	config.Provider,
 	logger.Provider,
 	db.Provider,
-	repositories.Module,
+	repository.Module,
 )

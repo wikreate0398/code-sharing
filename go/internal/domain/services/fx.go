@@ -2,13 +2,14 @@ package services
 
 import (
 	"go.uber.org/fx"
+	"wikreate/fimex/internal/domain/services/catalog/best_price_service"
 	"wikreate/fimex/internal/domain/services/catalog/product_service"
 	"wikreate/fimex/internal/domain/services/payment_history_service"
 	"wikreate/fimex/internal/transport/rbbtmq/consumers"
 )
 
 var Module = fx.Module(
-	"domain-services",
+	"domain-service",
 	fx.Provide(
 		fx.Annotate(
 			product_service.NewProductService,
@@ -19,5 +20,7 @@ var Module = fx.Module(
 			payment_history_service.NewPaymentHistoryService,
 			fx.As(new(consumers.PaymentHistoryService)),
 		),
+
+		fx.Annotate(best_price_service.NewBestPriceService),
 	),
 )

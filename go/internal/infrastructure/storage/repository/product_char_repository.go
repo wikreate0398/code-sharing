@@ -1,4 +1,4 @@
-package repositories
+package repository
 
 import (
 	"context"
@@ -28,7 +28,7 @@ func (p ProductCharRepositoryImpl) GetByProductIds(ctx context.Context, ids []st
 			and chars.deleted_at is null  
 		`, strings.Join(ids, ","))
 
-	if err := p.db.Select(ctx, &productChars, query); err != nil {
+	if err := p.db.SelectCtx(ctx, &productChars, query); err != nil {
 		return nil, err
 	}
 

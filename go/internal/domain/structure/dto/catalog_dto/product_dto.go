@@ -1,21 +1,11 @@
 package catalog_dto
 
-import (
-	"database/sql"
-)
+import "database/sql"
 
-type GenerateNamesInputDto struct {
-	IdGroup  int   `json:"id_group"`
-	IdsChars []int `json:"ids_chars"`
-	IdsVal   []int `json:"ids_val"`
-}
-
-type ProductCharQueryDto struct {
-	IdProduct int    `db:"id_product"`
-	Name      string `db:"name"`
-	UseInName bool   `db:"use_product_name"`
-	UseEmoji  bool   `db:"add_emodji"`
-	Position  string `db:"position"`
+type ProductQueryDto struct {
+	Id            int
+	IdCategory    int
+	IdSubcategory int
 }
 
 type ProductNameStoreDto struct {

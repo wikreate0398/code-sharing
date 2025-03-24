@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 )
 
 type BatchUpdate struct {
@@ -40,7 +41,21 @@ func (b *BatchUpdate) Query() (string, error) {
 		for i := 0; i < typ.NumField(); i++ {
 			field := typ.Field(i) // Получаем информацию о поле
 			fieldTag := field.Tag.Get("db")
-			val := row.Field(i).Interface()
+
+			var val = row.Field(i).Interface()
+
+			switch val.(type) {
+			case bool:
+				if val == true {
+					val = 1
+				} else {
+					val = 0
+				}
+			case time.Time:
+				val = val.(time.Time).Format("2006-01-02 15:04:05")
+			default:
+				//
+			}
 
 			structValues[fieldTag] = value{
 				fieldTag:   fieldTag,

@@ -1,4 +1,4 @@
-package repositories
+package repository
 
 import (
 	"context"
@@ -19,7 +19,7 @@ func NewPaymentHistoryRepository(db interfaces.DB) *PaymentHistoryRepositoryImpl
 func (repo PaymentHistoryRepositoryImpl) SelectUserHistory(
 	ctx context.Context, id_user int, cashbox payment_vo.Cashbox,
 ) ([]payment_history_entity.PaymentHistory, error) {
-	rows, err := repo.db.Query(ctx, `
+	rows, err := repo.db.QueryCtx(ctx, `
 	   select id,id_user,increase,sum,ballance,date
 		from payment_history
 		WHERE id_user=? and cashbox=? and deleted_at is null
@@ -72,6 +72,6 @@ func (repo PaymentHistoryRepositoryImpl) SelectUserHistory(
 }
 
 func (p PaymentHistoryRepositoryImpl) BatchUpdate(ctx context.Context, arg interface{}, identifier string) error {
-	_, err := p.db.BatchUpdate(ctx, "payment_history", identifier, arg)
+	_, err := p.db.BatchUpdateCtx(ctx, "payment_history", identifier, arg)
 	return err
 }

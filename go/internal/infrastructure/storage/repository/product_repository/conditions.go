@@ -3,21 +3,18 @@ package product_repository
 import (
 	"strings"
 	"wikreate/fimex/internal/domain/structure/dto/catalog_dto"
-	"wikreate/fimex/internal/helpers"
 )
 
 func whereIdGroup(id_group int) (string, int) {
 	return "exists(select * from categories where categories.id = id_subcategory and id_group = ?)", id_group
 }
 
-func whereCharValues(ids []int) (string, string) {
-	param := strings.Join(helpers.SliceIntValToString(ids), "','")
-	return "exists(select * from product_chars where id_value in (?))", param
+func whereCharValues(ids []int) (string, []int) {
+	return "exists(select * from product_chars where id_value in (?))", ids
 }
 
-func whereChars(ids []int) (string, string) {
-	param := strings.Join(helpers.SliceIntValToString(ids), "','")
-	return "exists(select * from product_chars where id_char in (?))", param
+func whereChars(ids []int) (string, []int) {
+	return "exists(select * from product_chars where id_char in (?))", ids
 }
 
 func condGenerateNamesPayload(payload *catalog_dto.GenerateNamesInputDto) (string, []interface{}) {

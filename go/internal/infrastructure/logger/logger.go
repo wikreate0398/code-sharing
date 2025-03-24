@@ -1,7 +1,7 @@
 package logger
 
 import (
-	"wikreate/fimex/internal/infrastructure/adapters/logger_adapter"
+	"wikreate/fimex/internal/infrastructure/adapter/logger_adapter"
 	"wikreate/fimex/pkg/logrus"
 )
 

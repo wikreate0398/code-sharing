@@ -40,7 +40,7 @@ func (repo UserRepositoryImpl) SelectWhitchHasPaymentHistory(ctx context.Context
 		and deleted_at is null
 	`, userCond, cashboxCond)
 
-	if err := repo.db.Select(ctx, &input, query, args...); err != nil {
+	if err := repo.db.SelectCtx(ctx, &input, query, args...); err != nil {
 		return nil, err
 	}
 

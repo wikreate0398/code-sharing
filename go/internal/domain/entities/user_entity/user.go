@@ -7,22 +7,22 @@ import (
 )
 
 type User struct {
-	id                int
-	deposit           float64
-	ballance          float64
-	penalty_ballance  float64
-	purchase_ballance float64
+	id               int
+	deposit          float64
+	ballance         float64
+	penaltyBallance  float64
+	purchaseBallance float64
 
 	paymentsHistory []payment_history_entity.PaymentHistory
 }
 
 func NewUser(dto user_dto.UserQueryDto) *User {
 	return &User{
-		id:                dto.ID,
-		deposit:           dto.Deposit,
-		ballance:          dto.Ballance,
-		penalty_ballance:  dto.PenaltyBallance,
-		purchase_ballance: dto.PurchaseBallance,
+		id:               dto.ID,
+		deposit:          dto.Deposit,
+		ballance:         dto.Ballance,
+		penaltyBallance:  dto.PenaltyBallance,
+		purchaseBallance: dto.PurchaseBallance,
 	}
 }
 
@@ -45,9 +45,9 @@ func (u *User) BallanceValueByCashbox(val payment_vo.Cashbox) float64 {
 	case payment_vo.Balance:
 		return u.ballance
 	case payment_vo.Penalty:
-		return u.penalty_ballance
+		return u.penaltyBallance
 	case payment_vo.PurchaseLimit:
-		return u.purchase_ballance
+		return u.purchaseBallance
 	default:
 		return 0
 	}

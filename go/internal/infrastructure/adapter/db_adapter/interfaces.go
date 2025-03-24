@@ -11,6 +11,11 @@ type DbInstance interface {
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 
 	Exec(query string, args ...interface{}) (sql.Result, error)
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+
+	MustExec(query string, args ...interface{}) sql.Result
 	MustExecContext(ctx context.Context, query string, args ...interface{}) sql.Result
+	NamedExec(query string, arg interface{}) (sql.Result, error)
+
 	NamedExecContext(ctx context.Context, query string, arg interface{}) (sql.Result, error)
 }
