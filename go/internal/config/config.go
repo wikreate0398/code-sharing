@@ -1,9 +1,12 @@
 package config
 
 import (
+	"fmt"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/spf13/viper"
 	"github.com/subosito/gotenv"
+	"os"
+	"path/filepath"
 )
 
 type Config struct {
@@ -11,9 +14,12 @@ type Config struct {
 	Databases Databases
 	RabbitMQ  RabbitMQ
 	Redis     Redis
+	Pusher    Pusher
 
 	//.yaml
 	Server `mapstructure:"server"`
+
+	rootPath string
 }
 
 type Databases struct {
@@ -35,6 +41,13 @@ type RabbitMQ struct {
 	Password string
 }
 
+type Pusher struct {
+	AppId   string
+	Key     string
+	Secret  string
+	Cluster string
+}
+
 type Redis struct {
 	Host     string
 	Port     int
@@ -47,8 +60,8 @@ type Server struct {
 
 const env = "stage"
 
-func NewConfig() (*Config, error) {
-	cfg := &Config{}
+func NewConfig(rootPath string) (*Config, error) {
+	cfg := &Config{rootPath: rootPath}
 
 	if err := cfg.parseYaml(env); err != nil {
 		return nil, err
@@ -61,10 +74,18 @@ func NewConfig() (*Config, error) {
 	return cfg, nil
 }
 
+func folderExists(path string) bool {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return info.IsDir()
+}
+
 func (cfg *Config) parseYaml(env string) error {
 	envViperInstance := viper.New()
 
-	envViperInstance.AddConfigPath("configs")
+	envViperInstance.AddConfigPath(filepath.Join(cfg.rootPath, "configs"))
 	envViperInstance.SetConfigName("main")
 
 	if err := envViperInstance.ReadInConfig(); err != nil {
@@ -85,8 +106,8 @@ func (cfg *Config) parseYaml(env string) error {
 }
 
 func (cfg *Config) parseEnv() error {
-	if err := gotenv.Load(".env"); err != nil {
-		return err
+	if err := gotenv.Load(filepath.Join(cfg.rootPath, ".env")); err != nil {
+		return fmt.Errorf("Error loading .env file: %w", err)
 	}
 
 	if err := loadEnv("db", &cfg.Databases.MySql); err != nil {
@@ -101,12 +122,16 @@ func (cfg *Config) parseEnv() error {
 		return err
 	}
 
+	if err := loadEnv("pusher", &cfg.Pusher); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func loadEnv(prefix string, spec interface{}) error {
 	if err := envconfig.Process(prefix, spec); err != nil {
-		return err
+		return fmt.Errorf("Error loading %s env vars: %w", prefix, err)
 	}
 
 	return nil

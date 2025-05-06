@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/jmoiron/sqlx"
+	"wikreate/fimex/internal/domain/entities/catalog/product"
 	"wikreate/fimex/internal/domain/interfaces"
 	"wikreate/fimex/internal/domain/structure/dto/catalog_dto"
 	"wikreate/fimex/internal/helpers"
@@ -17,7 +18,30 @@ func NewProductRepository(db interfaces.DB) *ProductRepositoryImpl {
 	return &ProductRepositoryImpl{db: db}
 }
 
-func (p ProductRepositoryImpl) GetIdsForGenerateNames(ctx context.Context, payload *catalog_dto.GenerateNamesInputDto, limit int, offset int) ([]string, error) {
+func (p ProductRepositoryImpl) Find(ctx context.Context, id int) (product.Product, error) {
+
+	var dto catalog_dto.ProductQueryDto
+	query := `select 
+					prod.id, 
+					prod.name, 
+					code,
+					prod.page_up, 
+					bot_group_chars,
+					id_category, 
+					id_subcategory,
+					cat.id_brand
+			  from products as prod
+			  join categories as cat on prod.id_category = cat.id
+			  where prod.id = ?`
+
+	if err := p.db.GetCtx(ctx, &dto, query, id); err != nil {
+		return product.Product{}, fmt.Errorf("productRepositoryImpl find() db.SelectCtx err: %w", err)
+	}
+
+	return product.NewProduct(dto), nil
+}
+
+func (p ProductRepositoryImpl) GetIdsForGenerateNames(ctx context.Context, payload catalog_dto.GenerateNamesInputDto, limit int, offset int) ([]string, error) {
 
 	var cond, args = condGenerateNamesPayload(payload)
 	args = append(args, limit, offset)
@@ -29,17 +53,17 @@ func (p ProductRepositoryImpl) GetIdsForGenerateNames(ctx context.Context, paylo
 	query, args, err := sqlx.In(query, args...)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[GetIdsForGenerateNames] sqlx.In err: %w", err)
 	}
 
 	if err := p.db.SelectCtx(ctx, &ids, query, args...); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[GetIdsForGenerateNames] db.SelectCtx err: %w", err)
 	}
 
 	return ids, nil
 }
 
-func (p ProductRepositoryImpl) CountTotalForGenerateNames(ctx context.Context, payload *catalog_dto.GenerateNamesInputDto) (int, error) {
+func (p ProductRepositoryImpl) CountTotalForGenerateNames(ctx context.Context, payload catalog_dto.GenerateNamesInputDto) (int, error) {
 	var cond, args = condGenerateNamesPayload(payload)
 
 	var total int
@@ -48,11 +72,11 @@ func (p ProductRepositoryImpl) CountTotalForGenerateNames(ctx context.Context, p
 	query, args, err := sqlx.In(query, args...)
 
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("[CountTotalForGenerateNames] sqlx.In err: %w", err)
 	}
 
 	if err := p.db.GetCtx(ctx, &total, query, args...); err != nil {
-		return 0, err
+		return 0, fmt.Errorf("[CountTotalForGenerateNames] db.GetCtx err: %w", err)
 	}
 
 	return total, nil
@@ -91,7 +115,7 @@ func (p ProductRepositoryImpl) GetForSort(ctx context.Context) ([]catalog_dto.Pr
 	var dto []catalog_dto.ProductSortQueryDto
 
 	if err := p.db.SelectCtx(ctx, &dto, query); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[GetForSort] db.SelectCtx err: %w", err)
 	}
 
 	return dto, nil
@@ -99,10 +123,20 @@ func (p ProductRepositoryImpl) GetForSort(ctx context.Context) ([]catalog_dto.Pr
 
 func (p ProductRepositoryImpl) UpdateNames(ctx context.Context, arg interface{}, identifier string) error {
 	_, err := p.db.BatchUpdateCtx(ctx, "products", identifier, arg)
-	return err
+
+	if err != nil {
+		return fmt.Errorf("[UpdateNames] db.BatchUpdateCtx err: %w", err)
+	}
+
+	return nil
 }
 
 func (p ProductRepositoryImpl) UpdatePosition(ctx context.Context, arg interface{}, identifier string) error {
 	_, err := p.db.BatchUpdateCtx(ctx, "products", identifier, arg)
-	return err
+
+	if err != nil {
+		return fmt.Errorf("[UpdatePosition] db.BatchUpdateCtx err: %w", err)
+	}
+
+	return nil
 }

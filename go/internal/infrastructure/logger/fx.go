@@ -14,6 +14,10 @@ var Provider = fx.Provide(
 	),
 )
 
+var WithLogger = fx.WithLogger(func(log interfaces.Logger) fxevent.Logger {
+	return NewFxLogger(log)
+})
+
 type FxLogger struct {
 	Logger interfaces.Logger
 }
@@ -41,19 +45,19 @@ func (l *FxLogger) LogEvent(event fxevent.Event) {
 
 	case *fxevent.Provided:
 		if e.Err != nil {
-			l.Logger.Errorf("error encountered while applying options: %v", e.Err, helpers.KeyValue{
+			l.Logger.Errorf("error encountered while applying options: %v, %#v", e.Err, helpers.KeyValue{
 				"module": e.ModuleName,
 			})
 		}
 	case *fxevent.Replaced:
 		if e.Err != nil {
-			l.Logger.Errorf("error encountered while replacing: %v", e.Err, helpers.KeyValue{
+			l.Logger.Errorf("error encountered while replacing: %v, %#v", e.Err, helpers.KeyValue{
 				"module": e.ModuleName,
 			})
 		}
 	case *fxevent.Decorated:
 		if e.Err != nil {
-			l.Logger.Errorf("error encountered while applying options: %v", e.Err, helpers.KeyValue{
+			l.Logger.Errorf("error encountered while applying options: %v, %#v", e.Err, helpers.KeyValue{
 				"module": e.ModuleName,
 			})
 		}

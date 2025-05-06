@@ -5,18 +5,8 @@ import (
 	"fmt"
 	"go.uber.org/fx"
 	"math"
-	"runtime"
-	"slices"
-	"sort"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
-	"wikreate/fimex/internal/domain/entities/catalog/product"
 	"wikreate/fimex/internal/domain/interfaces"
 	"wikreate/fimex/internal/domain/structure/dto/catalog_dto"
-	"wikreate/fimex/internal/helpers"
-	"wikreate/fimex/pkg/workerpool"
 )
 
 type Params struct {
@@ -24,7 +14,7 @@ type Params struct {
 
 	ProductRepository     ProductRepository
 	ProductCharRepository ProductCharRepository
-	Logger                interfaces.Logger
+	Worker                interfaces.WorkerPool
 }
 
 type ProductService struct {
@@ -35,14 +25,13 @@ func NewProductService(params Params) *ProductService {
 	return &ProductService{&params}
 }
 
-func (s ProductService) GenerateNames(ctx context.Context, payload *catalog_dto.GenerateNamesInputDto) {
+func (s ProductService) GenerateNames(ctx context.Context, payload catalog_dto.GenerateNamesInputDto) error {
 	//start := time.Now()
 
 	total, err := s.ProductRepository.CountTotalForGenerateNames(ctx, payload)
 
 	if err != nil {
-		s.Logger.Errorf("Error counting total for generate names: %s", err.Error())
-		return
+		return fmt.Errorf("cannot count total products for generate names: %w", err)
 	}
 
 	var (
@@ -50,169 +39,59 @@ func (s ProductService) GenerateNames(ctx context.Context, payload *catalog_dto.
 		iterations = int(math.Ceil(float64(total) / float64(limit)))
 	)
 
-	pool := workerpool.NewWorkerPool(runtime.NumCPU())
-
-	pool.Start()
-
 	for i := 0; i < iterations; i++ {
-		pool.AddJob(func(i int) func() {
-			return func() {
-				var logFields = helpers.KeyStrValue{
-					"payload": payload,
-				}
-
-				ids, err := s.ProductRepository.GetIdsForGenerateNames(ctx, payload, limit, i*limit)
-
-				if err != nil {
-					s.Logger.WithFields(logFields).Errorf("Error getting ids for generate names: %s", err.Error())
-					return
-				}
-
-				grouped := make(map[any][]catalog_dto.ProductCharQueryDto)
-
-				data, err := s.ProductCharRepository.GetByProductIds(ctx, ids)
-
-				if err != nil {
-					s.Logger.WithFields(logFields).Errorf("Error getting product chars: %s", err.Error())
-				}
-
-				for _, char := range data {
-					grouped[char.IdProduct] = append(grouped[char.IdProduct], char)
-				}
-
-				var products [][]catalog_dto.ProductCharQueryDto
-
-				for _, items := range grouped {
-					slices.SortFunc(items, func(a, b catalog_dto.ProductCharQueryDto) int {
-						return strings.Compare(a.Position, b.Position)
-					})
-					products = append(products, items)
-				}
-
-				var insert []catalog_dto.ProductNameStoreDto
-				for _, productChars := range products {
-					var productNameChars []string
-					for _, char := range productChars {
-						name := product.NewProductChar(char).PrepareNameForProduct()
-						if name != "" {
-							productNameChars = append(productNameChars, name)
-						}
-					}
-
-					insert = append(insert, catalog_dto.ProductNameStoreDto{
-						Id:        productChars[0].IdProduct,
-						Name:      strings.Join(productNameChars, " "),
-						UpdatedAt: time.Now().Format(helpers.FullTimeFormat),
-					})
-				}
-
-				if len(insert) > 0 {
-					if err := s.ProductRepository.UpdateNames(ctx, insert, "id"); err != nil {
-						s.Logger.WithFields(logFields).Errorf("Error updating product names: %s", err.Error())
-					}
-				}
-			}
-		}(i))
+		s.Worker.AddJob(
+			newGenerateNamesJob(
+				s.ProductRepository,
+				s.ProductCharRepository,
+				payload,
+				limit,
+				i*limit,
+			),
+		)
 	}
 
-	pool.Wait()
-
-	pool.Stop()
-
-	//s.Logger.Info(fmt.Sprintf("GenerateNames %v", time.Since(start)))
+	return nil
 }
 
-func (s ProductService) Sort(ctx context.Context) {
+func (s ProductService) Sort(ctx context.Context) error {
 	//start := time.Now()
 
-	type job struct {
-		products  []catalog_dto.ProductSortQueryDto
-		iteration int
+	grouped := make(map[any][]catalog_dto.ProductSortQueryDto)
+	var orderedKeys []string
+
+	var data, err = s.ProductRepository.GetForSort(ctx)
+
+	if err != nil {
+		return fmt.Errorf("cannot get products for sort: %w", err)
 	}
 
-	var (
-		wg           = sync.WaitGroup{}
-		jobs         = make(chan job)
-		workersCount = runtime.NumCPU()
-	)
+	for _, prod := range data {
+		var key = fmt.Sprintf("%v.%v.%v", prod.IdBrand, prod.IdCategory, prod.IdSubcategory)
 
-	for i := 0; i < workersCount; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for job := range jobs {
+		if _, exists := grouped[key]; !exists {
+			orderedKeys = append(orderedKeys, key)
+		}
 
-				var (
-					subcatProducts = job.products
-					iteration      = job.iteration
-				)
-
-				var insert []catalog_dto.ProductSortStoreDto
-
-				sort.Slice(subcatProducts, func(a, b int) bool {
-					var aPup = strings.Split(subcatProducts[a].Position.String, ",")
-					var bPup = strings.Split(subcatProducts[b].Position.String, ",")
-
-					for k := 0; k < len(aPup) && k < len(bPup); k++ {
-						aVal, _ := strconv.Atoi(aPup[k])
-						bVal, _ := strconv.Atoi(bPup[k])
-
-						if aVal != bVal {
-							return aVal < bVal
-						}
-					}
-					return false
-				})
-
-				for _, prod := range subcatProducts {
-					insert = append(insert, catalog_dto.ProductSortStoreDto{
-						ID:        prod.ID,
-						Position:  iteration,
-						UpdatedAt: time.Now().Format(helpers.FullTimeFormat),
-					})
-					iteration++
-				}
-
-				if err := s.ProductRepository.UpdatePosition(ctx, insert, "id"); err != nil {
-					s.Logger.Errorf("Error updating product position: %s", err.Error())
-				}
-			}
-		}()
+		grouped[key] = append(grouped[key], prod)
 	}
 
-	go func() {
-		grouped := make(map[any][]catalog_dto.ProductSortQueryDto)
-		var orderedKeys []string
+	var num = 1
+	var i = 1
+	for _, key := range orderedKeys {
+		var products = grouped[key]
 
-		var data, err = s.ProductRepository.GetForSort(ctx)
+		s.Worker.AddJob(
+			newSortProductsJob(
+				s.ProductRepository,
+				products,
+				num,
+			),
+		)
 
-		if err != nil {
-			s.Logger.Errorf("Error get products for sort : %s", err.Error())
-			return
-		}
+		i++
+		num += len(products)
+	}
 
-		for _, prod := range data {
-			var key = fmt.Sprintf("%v.%v.%v", prod.IdBrand, prod.IdCategory, prod.IdSubcategory)
-
-			if _, exists := grouped[key]; !exists {
-				orderedKeys = append(orderedKeys, key)
-			}
-
-			grouped[key] = append(grouped[key], prod)
-		}
-
-		var num = 1
-		for _, key := range orderedKeys {
-			var products = grouped[key]
-
-			jobs <- job{products: products, iteration: num}
-			num += len(products)
-		}
-
-		close(jobs)
-	}()
-
-	wg.Wait()
-
-	//s.Logger.Info(fmt.Sprintf("Sort Products %v", time.Since(start)))
+	return nil
 }

@@ -9,10 +9,6 @@ import (
 	"time"
 )
 
-var (
-	logsDir = "logs"
-)
-
 type StackHook struct{}
 
 func (h *StackHook) Levels() []log.Level {
@@ -24,12 +20,12 @@ func (h *StackHook) Fire(entry *log.Entry) error {
 	return nil
 }
 
-func NewLogrus() (*log.Logger, error) {
-	if err := createDir(); err != nil {
+func NewLogrus(logsDir string) (*log.Logger, error) {
+	if err := createDir(logsDir); err != nil {
 		return nil, err
 	}
 
-	file, err := openFile()
+	file, err := openFile(logsDir)
 
 	if err != nil {
 		return nil, err
@@ -41,12 +37,12 @@ func NewLogrus() (*log.Logger, error) {
 	logger.SetLevel(log.DebugLevel)
 	logger.SetOutput(io.MultiWriter(file, os.Stdout))
 
-	logger.AddHook(&StackHook{})
+	//logger.AddHook(&StackHook{})
 
 	return logger, nil
 }
 
-func createDir() error {
+func createDir(logsDir string) error {
 	if _, err := os.Stat(logsDir); os.IsNotExist(err) {
 		if err := os.Mkdir(logsDir, 0755); err != nil {
 			return fmt.Errorf("cannot create logs directory: %w", err)
@@ -67,7 +63,7 @@ func createDir() error {
 	return nil
 }
 
-func openFile() (*os.File, error) {
+func openFile(logsDir string) (*os.File, error) {
 	fileName := fmt.Sprintf("%s/logs-%s.log", logsDir, time.Now().Format("2006-01-02"))
 	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 

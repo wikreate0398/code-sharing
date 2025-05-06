@@ -8,7 +8,7 @@ import (
 )
 
 type UserRepository interface {
-	SelectWhitchHasPaymentHistory(ctx context.Context, id_user int, cashbox payment_vo.Cashbox) ([]user_dto.UserQueryDto, error)
+	SelectWhitchHasPaymentHistory(ctx context.Context, id_user int, cashbox payment_vo.Cashbox) ([]user_dto.UserDto, error)
 }
 
 type PaymentHistoryRepository interface {

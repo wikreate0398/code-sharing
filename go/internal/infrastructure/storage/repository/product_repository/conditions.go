@@ -17,7 +17,7 @@ func whereChars(ids []int) (string, []int) {
 	return "exists(select * from product_chars where id_char in (?))", ids
 }
 
-func condGenerateNamesPayload(payload *catalog_dto.GenerateNamesInputDto) (string, []interface{}) {
+func condGenerateNamesPayload(payload catalog_dto.GenerateNamesInputDto) (string, []interface{}) {
 	var where []string
 	args := []interface{}{}
 

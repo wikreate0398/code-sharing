@@ -55,6 +55,10 @@ func (p *SaleProduct) IdImplementation() int {
 	return p.idImplementation
 }
 
+func (p *SaleProduct) IdPurchase() int {
+	return p.idImplementation
+}
+
 func (p *SaleProduct) IdWholesale() int {
 	return p.idWholesale
 }

@@ -50,11 +50,11 @@ func (p CargoRepositoryImpl) Get(params catalog_dto.CargoRepoParamsDto) ([]catal
 	query, args, err := sqlx.In(query, args...)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[cargoRepositoryImpl.Get] sqlx.In err: %w", err)
 	}
 
 	if err := p.db.Select(&result, query, args...); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[cargoRepositoryImpl.Get] db.Select err: %w", err)
 	}
 
 	return result, nil

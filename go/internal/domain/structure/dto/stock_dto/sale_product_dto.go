@@ -51,5 +51,5 @@ type SaleProductRepoParamsDto struct {
 
 type GenerateBestProductInputDto struct {
 	IdPurchase  int   `json:"id_purchase"`
-	IdsProducts []int `json:"ids_product"`
+	IdsProducts []int `json:"ids_products"`
 }

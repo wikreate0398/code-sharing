@@ -3,10 +3,15 @@ package catalog_dto
 import "database/sql"
 
 type ProductQueryDto struct {
-	Id                         int
-	IdCategory                 int
-	IdSubcategory              int
-	PreorderNotificationsCount int
+	Id                         int    `db:"id"`
+	Name                       string `db:"name"`
+	Code                       string `db:"code"`
+	Position                   int    `db:"page_up"`
+	BotGroupChars              string `db:"bot_group_chars"`
+	IdBrand                    int    `db:"id_brand"`
+	IdCategory                 int    `db:"id_category"`
+	IdSubcategory              int    `db:"id_subcategory"`
+	PreorderNotificationsCount int    `db:"count_notifications"`
 }
 
 type ProductNameStoreDto struct {

@@ -13,10 +13,13 @@ type DB interface {
 	Query(query string, args ...any) (*sql.Rows, error)
 	QueryCtx(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 
-	//NamedExecCtx(ctx context.Context, query string, args interface{}) error
 	BatchUpdateCtx(ctx context.Context, table string, identifier string, arg interface{}) (sql.Result, error)
 
 	ExecCtx(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 
+	// Transaction
 	Transaction(ctx context.Context, fnc func(ctx context.Context) error) error
+	BeginTx(ctx context.Context) (context.Context, error)
+	CommitTx(ctx context.Context) error
+	RollbackTx(ctx context.Context)
 }

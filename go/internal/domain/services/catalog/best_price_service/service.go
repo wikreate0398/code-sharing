@@ -6,11 +6,10 @@ import (
 	"go.uber.org/fx"
 	"slices"
 	"wikreate/fimex/internal/domain/entities/stock/provider_product"
+	"wikreate/fimex/internal/domain/entities/stock/sale_product"
 	"wikreate/fimex/internal/domain/interfaces"
 	"wikreate/fimex/internal/domain/structure/dto/catalog_dto"
 	"wikreate/fimex/internal/domain/structure/dto/stock_dto"
-	"wikreate/fimex/internal/helpers"
-	"wikreate/fimex/pkg/workerpool"
 )
 
 type Params struct {
@@ -26,6 +25,7 @@ type Params struct {
 	CountryImplRepo     CountryImplementationRepository
 	WholesaleRepo       WholesaleRepository
 	SaleProductRepo     SaleProductRepository
+	Worker              interfaces.WorkerPool
 }
 
 type BestPriceService struct {
@@ -40,8 +40,14 @@ func (s *BestPriceService) GeneratePricesForSelectedStockProducts(
 	ctx context.Context,
 	idPurchase int,
 	idsProducts []int,
-	global bool,
+	isGlobal bool,
 ) error {
+	// TODO: chunk by 100, group by unique id_product
+
+	if len(idsProducts) == 0 || idPurchase <= 0 {
+		return nil
+	}
+
 	return s.Db.Transaction(ctx, func(ctx context.Context) error {
 		providerProducts, err := s.ProviderProductRepo.GetForBestSale(ctx, idPurchase, idsProducts)
 		if err != nil {
@@ -84,7 +90,6 @@ func (s *BestPriceService) GeneratePricesForSelectedStockProducts(
 		}
 
 		handler := saleProductsHandler{
-			global:          global,
 			percents:        mapPercents(percents),
 			cargo:           mapCargo(cargo),
 			implementations: impl,
@@ -92,9 +97,15 @@ func (s *BestPriceService) GeneratePricesForSelectedStockProducts(
 			saleProducts:    groupSaleProducts(saleProducts),
 			saleProductRepo: s.SaleProductRepo,
 
-			records:              make([]stock_dto.SaleProductStoreDto, 0),
-			topPrice:             newTopPricePublisher(s.Redis, idPurchase),
-			preorderNotification: newPreOrderNotification(s.Redis, &providerProducts),
+			upsertRecords:  make([]stock_dto.SaleProductStoreDto, 0),
+			deletedRecords: make([]sale_product.SaleProduct, 0),
+
+			publisherManager: newPublisherManager(
+				newTopPricePublisher(s.Redis, idPurchase),
+				newPreOrderNotification(s.Redis, &providerProducts),
+				newStorePublisher(s.Redis),
+				isGlobal,
+			),
 		}
 
 		return handler.handle(ctx, providerProducts)
@@ -103,13 +114,11 @@ func (s *BestPriceService) GeneratePricesForSelectedStockProducts(
 
 func (s *BestPriceService) GeneratePricesForAllStockProducts(ctx context.Context) error {
 	if err := s.SaleProductRepo.DeleteUnvailableProducts(ctx); err != nil {
-		s.Logger.OnError(err, "failed to delete unvailable products")
 		return err
 	}
 
 	providerProducts, err := s.ProviderProductRepo.GetActiveProducts(ctx)
 	if err != nil {
-		s.Logger.OnError(err, "failed to get active products")
 		return err
 	}
 
@@ -118,15 +127,6 @@ func (s *BestPriceService) GeneratePricesForAllStockProducts(ctx context.Context
 		mapped[item.IdPurchase()] = append(mapped[item.IdPurchase()], item)
 	}
 
-	pool := workerpool.NewWorkerPool(30)
-
-	pool.Start()
-
-	defer func() {
-		pool.Wait()
-		pool.Stop()
-	}()
-
 	for idPurchase, items := range mapped {
 		for chunkItems := range slices.Chunk(items, 100) {
 			ids := make([]int, len(chunkItems))
@@ -134,16 +134,13 @@ func (s *BestPriceService) GeneratePricesForAllStockProducts(ctx context.Context
 				ids[i] = item.IdProduct()
 			}
 
-			pool.AddJob(func(ids []int) func() {
-				return func() {
-					err := s.GeneratePricesForSelectedStockProducts(ctx, idPurchase, ids, true)
-
-					s.Logger.WithFields(helpers.KeyStrValue{
-						"idPurchase": idPurchase,
-						"ids":        ids,
-					}).OnError(err, "failed to generate prices for all products")
-				}
-			}(ids))
+			s.Worker.AddJob(
+				newGeneratePricesJob(
+					s,
+					idPurchase,
+					ids,
+				),
+			)
 		}
 	}
 

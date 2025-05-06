@@ -8,6 +8,7 @@ import (
 
 type User struct {
 	id               int
+	userType         string
 	deposit          float64
 	ballance         float64
 	penaltyBallance  float64
@@ -16,7 +17,7 @@ type User struct {
 	paymentsHistory []payment_history_entity.PaymentHistory
 }
 
-func NewUser(dto user_dto.UserQueryDto) *User {
+func NewUser(dto user_dto.UserDto) *User {
 	return &User{
 		id:               dto.ID,
 		deposit:          dto.Deposit,
@@ -26,12 +27,27 @@ func NewUser(dto user_dto.UserQueryDto) *User {
 	}
 }
 
+func (u *User) ToDto() user_dto.UserDto {
+	return user_dto.UserDto{
+		ID:               u.id,
+		Type:             u.userType,
+		Deposit:          u.deposit,
+		Ballance:         u.ballance,
+		PenaltyBallance:  u.penaltyBallance,
+		PurchaseBallance: u.purchaseBallance,
+	}
+}
+
 func (u *User) SetPaymentHistory(paymentsHistory []payment_history_entity.PaymentHistory) {
 	u.paymentsHistory = paymentsHistory
 }
 
 func (u *User) ID() int {
 	return u.id
+}
+
+func (u *User) Type() string {
+	return u.userType
 }
 
 func (u *User) PaymentsHistory() []payment_history_entity.PaymentHistory {

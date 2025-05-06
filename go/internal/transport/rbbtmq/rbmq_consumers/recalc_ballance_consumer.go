@@ -1,4 +1,4 @@
-package rbbtmq
+package rbmq_consumers
 
 import (
 	"context"
@@ -14,13 +14,11 @@ func NewRecalcHistoryBallanceConsumer(service PaymentHistoryService) *RecalcHist
 	return &RecalcHistoryBallanceConsumer{service}
 }
 
-func (r *RecalcHistoryBallanceConsumer) Handle(ctx context.Context, result []byte) error {
-	var input = new(payment_dto.RecalcBallanceInputDto)
+func (r *RecalcHistoryBallanceConsumer) Consume(ctx context.Context, result []byte) error {
+	var input = payment_dto.RecalcBallanceInputDto{}
 	if err := json.Unmarshal(result, &input); err != nil {
 		return err
 	}
 
-	r.service.RecalcBallances(ctx, input)
-
-	return nil
+	return r.service.RecalcBallances(ctx, input)
 }

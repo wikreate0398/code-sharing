@@ -7,6 +7,6 @@ import (
 )
 
 func registerMiddleware(router *gin.Engine, logger interfaces.Logger) {
-	router.Use(middleware.LoggerMiddleware(logger))
+	router.Use(middleware.ErrorHandlerMiddleware(logger))
 	router.Use(gin.Recovery())
 }

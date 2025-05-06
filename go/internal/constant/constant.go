@@ -1,3 +1,7 @@
 package constant
 
-var KeyTx = "sqlTx"
+type StrContextKey string
+
+var KeyTx StrContextKey = "sqlTx"
+
+var WorkersNum = 30

@@ -1,48 +1,92 @@
 package workerpool
 
-import "sync"
+import (
+	"context"
+	"fmt"
+	"reflect"
+	"sync"
+	"time"
+)
+
+type Job interface {
+	Run(ctx context.Context, charErr chan<- error)
+}
 
 type WorkerPool struct {
-	workerCount int
-	jobChannel  chan func()
-	wg          sync.WaitGroup
+	stopped       bool
+	workerCount   int
+	jobChannel    chan Job
+	wg            sync.WaitGroup
+	resultErrChan chan error
 }
 
-// NewWorkerPool создает новый пул воркеров
 func NewWorkerPool(workerCount int) *WorkerPool {
 	return &WorkerPool{
-		workerCount: workerCount,
-		jobChannel:  make(chan func()),
+		stopped:       false,
+		workerCount:   workerCount,
+		jobChannel:    make(chan Job),
+		resultErrChan: make(chan error),
 	}
 }
 
-// Start запускает пул воркеров
-func (wp *WorkerPool) Start() {
+func (wp *WorkerPool) Start(ctx context.Context) {
 	for i := 0; i < wp.workerCount; i++ {
-		go wp.worker(i)
+		go wp.worker(ctx, i)
 	}
 }
 
-// worker выполняет задания из канала
-func (wp *WorkerPool) worker(id int) {
+func (wp *WorkerPool) worker(ctx context.Context, id int) {
 	for job := range wp.jobChannel {
-		job()
-		wp.wg.Done()
+		func(job Job) {
+			defer func() {
+				if e := recover(); e != nil {
+					wp.resultErrChan <- fmt.Errorf(
+						"handle panic from worker: jobName %v, %v", reflect.TypeOf(job).Name(), e,
+					)
+				}
+
+				wp.wg.Done()
+			}()
+
+			job.Run(ctx, wp.resultErrChan)
+		}(job)
 	}
 }
 
-// AddJob добавляет задание в пул
-func (wp *WorkerPool) AddJob(job func()) {
+func (wp *WorkerPool) AddJob(job Job) {
+	if wp.stopped {
+		return
+	}
+
 	wp.wg.Add(1)
 	wp.jobChannel <- job
 }
 
-// Wait ожидает завершения всех заданий
-func (wp *WorkerPool) Wait() {
-	wp.wg.Wait()
+func (wp *WorkerPool) Wait(ctx context.Context) {
+	c, cancel := context.WithDeadline(ctx, time.Now().Add(5*time.Second))
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		wp.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-c.Done():
+		fmt.Println("wait workerPool ctx.Done", c.Err())
+		return
+	case <-done:
+		return
+	}
 }
 
-// Stop закрывает канал
 func (wp *WorkerPool) Stop() {
+	wp.stopped = true
 	close(wp.jobChannel)
+	close(wp.resultErrChan)
+}
+
+func (wp *WorkerPool) GetResultChan() <-chan error {
+	return wp.resultErrChan
 }

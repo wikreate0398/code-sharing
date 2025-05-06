@@ -9,6 +9,7 @@ import (
 
 type Logger interface {
 	Error(args ...interface{})
+	Errorf(msg string, args ...interface{})
 
 	PanicOnErr(err error, args ...interface{})
 	FatalOnErr(err error, args ...interface{})
@@ -28,12 +29,11 @@ type RegisterDto struct {
 	Exchange   string
 	QueueName  string
 	RoutingKey string
-	Resolver   Resolver
-	Ctx        context.Context
+	Consumer   Consumer
 }
 
-type Resolver interface {
-	Handle(ctx context.Context, result []byte) error
+type Consumer interface {
+	Consume(ctx context.Context, result []byte) error
 }
 
 type Credentials struct {
@@ -74,14 +74,14 @@ func (r *RabbitMQ) queueDeclare(exchange string, queueName string, routingKey st
 	)
 }
 
-func (r *RabbitMQ) Register(input RegisterDto) {
+func (r *RabbitMQ) RegisterConsumer(input RegisterDto) {
 	r.exchangeDeclare(input.Exchange)
 	r.queueDeclare(input.Exchange, input.QueueName, input.RoutingKey)
 
 	r.register = append(r.register, input)
 }
 
-func (r *RabbitMQ) Listen() {
+func (r *RabbitMQ) Listen(ctx context.Context) {
 
 	grouped := make(map[string]map[string]RegisterDto)
 	for _, input := range r.register {
@@ -99,17 +99,22 @@ func (r *RabbitMQ) Listen() {
 			msgs, err := r.ch.Consume(
 				queueName, "", true, false, false, false, nil,
 			)
+
 			r.log.PanicOnErr(err, fmt.Sprintf("Failed to register a consumers %s", queueName))
 
 			for {
 				select {
 				case msg := <-msgs:
 					if result, exists := items[msg.RoutingKey]; exists {
-						//fmt.Println(queueName, msg.RoutingKey, msg.Exchange, string(msg.Body))
-						if err := result.Resolver.Handle(result.Ctx, msg.Body); err != nil {
-							r.log.Error(err)
+						// fmt.Println(queueName, msg.RoutingKey, string(msg.Body))
+						if err := result.Consumer.Consume(ctx, msg.Body); err != nil {
+							r.log.Errorf(
+								"rabbitmq consume error. queueName %s, routingKey %s, body %s, err %v",
+								queueName, msg.RoutingKey, string(msg.Body), err,
+							)
 						}
 					}
+
 					continue
 				case <-r.stop:
 					fmt.Println("Consumer stopped", queueName)

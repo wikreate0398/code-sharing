@@ -3,6 +3,7 @@ package db_adapter
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"github.com/jmoiron/sqlx"
 	"wikreate/fimex/internal/constant"
 	"wikreate/fimex/internal/domain/interfaces"
@@ -19,29 +20,41 @@ func NewDBAdapter(db *sqlx.DB) *DB {
 	return &DB{db: db}
 }
 
-func (dbm *DB) BeginTx() (*sqlx.Tx, error) {
+func (dbm *DB) BeginTx(ctx context.Context) (context.Context, error) {
 	tx, err := dbm.db.Beginx()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	return tx, nil
+
+	ctx = context.WithValue(ctx, constant.KeyTx, tx)
+
+	return ctx, nil
 }
 
-func (dbm *DB) CommitTx(tx *sqlx.Tx) error {
-	return tx.Commit()
+func (dbm *DB) CommitTx(ctx context.Context) error {
+	switch tx := ctx.Value(constant.KeyTx).(type) {
+	case *sqlx.Tx:
+		return tx.Commit()
+	default:
+		return fmt.Errorf("[CommitTx] no transaction found in context")
+	}
 }
 
-func (dbm *DB) RollbackTx(tx *sqlx.Tx) error {
-	return tx.Rollback()
+func (dbm *DB) RollbackTx(ctx context.Context) {
+	switch tx := ctx.Value(constant.KeyTx).(type) {
+	case *sqlx.Tx:
+		_ = tx.Rollback()
+	}
 }
 
 func (dbm *DB) Transaction(ctx context.Context, fnc func(ctx context.Context) error) error {
-	tx, err := dbm.BeginTx()
+	tx, err := dbm.db.Beginx()
+
+	isCommit := false
 
 	defer func() {
-		if err := recover(); err != nil {
-			err := tx.Rollback()
-			panic(err)
+		if !isCommit {
+			_ = tx.Rollback()
 		}
 	}()
 
@@ -52,13 +65,16 @@ func (dbm *DB) Transaction(ctx context.Context, fnc func(ctx context.Context) er
 	ctx = context.WithValue(ctx, constant.KeyTx, tx)
 
 	if err := fnc(ctx); err != nil {
-		if err := tx.Rollback(); err != nil {
-			return err
-		}
 		return err
 	}
 
-	return tx.Commit()
+	err = tx.Commit()
+
+	if err == nil {
+		isCommit = true
+	}
+
+	return err
 }
 
 func instance(ctx context.Context, db *sqlx.DB) DbInstance {

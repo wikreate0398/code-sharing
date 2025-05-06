@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"github.com/redis/go-redis/v9"
 	"wikreate/fimex/internal/config"
+	"wikreate/fimex/internal/domain/interfaces"
 )
 
-func NewRedis(cfg *config.Config) *redis.Client {
+func NewRedis(cfg *config.Config, log interfaces.Logger) *redis.Client {
 	ctx := context.Background()
 
 	client := redis.NewClient(&redis.Options{
@@ -18,16 +19,10 @@ func NewRedis(cfg *config.Config) *redis.Client {
 	})
 
 	err := client.Set(ctx, "foo", "bar", 0).Err()
-	if err != nil {
-		panic(err)
-	}
+	log.FatalOnErr(err, "Failed to store value in redis")
 
 	_, err = client.Get(ctx, "foo").Result()
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("redis connected")
+	log.FatalOnErr(err, "Failed to get value from redis")
 
 	return client
 }

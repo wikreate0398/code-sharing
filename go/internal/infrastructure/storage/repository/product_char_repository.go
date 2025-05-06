@@ -25,11 +25,11 @@ func (p ProductCharRepositoryImpl) GetByProductIds(ctx context.Context, ids []st
 			join catalog_groups_chars as cgc on cgc.id_char = pc.id_char and cgc.id_group = pc.id_group
 			where id_product in (%s) 
 			and use_product_name = 1 
-			and chars.deleted_at is null  
+			and chars.deleted_at is null
 		`, strings.Join(ids, ","))
 
 	if err := p.db.SelectCtx(ctx, &productChars, query); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[GetByProductIds] db.SelectCtx err: %w", err)
 	}
 
 	return productChars, nil

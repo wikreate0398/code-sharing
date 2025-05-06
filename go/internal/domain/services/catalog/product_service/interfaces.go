@@ -6,8 +6,8 @@ import (
 )
 
 type ProductRepository interface {
-	GetIdsForGenerateNames(ctx context.Context, payload *catalog_dto.GenerateNamesInputDto, limit int, offset int) ([]string, error)
-	CountTotalForGenerateNames(ctx context.Context, payload *catalog_dto.GenerateNamesInputDto) (int, error)
+	GetIdsForGenerateNames(ctx context.Context, payload catalog_dto.GenerateNamesInputDto, limit int, offset int) ([]string, error)
+	CountTotalForGenerateNames(ctx context.Context, payload catalog_dto.GenerateNamesInputDto) (int, error)
 	GetForSort(ctx context.Context) ([]catalog_dto.ProductSortQueryDto, error)
 	UpdateNames(ctx context.Context, arg interface{}, key string) error
 	UpdatePosition(ctx context.Context, arg interface{}, key string) error

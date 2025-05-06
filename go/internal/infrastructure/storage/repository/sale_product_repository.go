@@ -58,13 +58,13 @@ func (p SaleProductRepositoryImpl) Get(ctx context.Context, params stock_dto.Sal
 	query, args, err := sqlx.In(query, args...)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[SaleProductRepositoryImpl.Get] sqlx.In: %w", err)
 	}
 
 	rows, err := p.db.QueryCtx(ctx, query, args...)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[SaleProductRepositoryImpl.Get] db.QueryCtx: %w", err)
 	}
 
 	defer rows.Close()
@@ -91,7 +91,7 @@ func (p SaleProductRepositoryImpl) Get(ctx context.Context, params stock_dto.Sal
 			&dto.Price,
 			&isTop,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("[SaleProductRepositoryImpl.Get] rows.Scan: %w", err)
 		}
 
 		dto.IsTop = isTop == 1
@@ -110,7 +110,11 @@ func (p SaleProductRepositoryImpl) DeleteByIds(ctx context.Context, ids []int) e
 
 	_, err = p.db.ExecCtx(ctx, query, args...)
 
-	return err
+	if err != nil {
+		return fmt.Errorf("[SaleProductRepositoryImpl.DeleteByIds] db.ExecCtx: %w", err)
+	}
+
+	return nil
 }
 
 func (p SaleProductRepositoryImpl) BatchCreate(ctx context.Context, records []stock_dto.SaleProductStoreDto) error {
@@ -158,11 +162,15 @@ func (p SaleProductRepositoryImpl) BatchCreate(ctx context.Context, records []st
 		)
 	}
 
-	query += fmt.Sprintf("%s", strings.Join(placeholders, ","))
+	query += strings.Join(placeholders, ",")
 
 	_, err := p.db.ExecCtx(ctx, query, values...)
 
-	return err
+	if err != nil {
+		return fmt.Errorf("[SaleProductRepositoryImpl.BatchCreate] db.ExecCtx: %w", err)
+	}
+
+	return nil
 }
 
 func (p SaleProductRepositoryImpl) BatchUpdate(ctx context.Context, records []stock_dto.SaleProductStoreDto) error {
@@ -206,7 +214,12 @@ func (p SaleProductRepositoryImpl) BatchUpdate(ctx context.Context, records []st
 	}
 
 	_, err := p.db.BatchUpdateCtx(ctx, "sale_products", "id", update)
-	return err
+
+	if err != nil {
+		return fmt.Errorf("[SaleProductRepositoryImpl.BatchUpdate] db.BatchUpdateCtx: %w", err)
+	}
+
+	return nil
 }
 
 func (p SaleProductRepositoryImpl) DeleteUnvailableProducts(ctx context.Context) error {
@@ -217,5 +230,10 @@ func (p SaleProductRepositoryImpl) DeleteUnvailableProducts(ctx context.Context)
 			and qty > 0 and price is not null
 		)
 	`)
-	return err
+
+	if err != nil {
+		return fmt.Errorf("[SaleProductRepositoryImpl.DeleteUnvailableProducts] db.ExecCtx: %w", err)
+	}
+
+	return nil
 }

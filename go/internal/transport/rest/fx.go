@@ -16,6 +16,7 @@ var Module = fx.Module("rest",
 		response.NewResponse,
 
 		controllers.NewMainController,
+		controllers.NewStockController,
 	),
 
 	fx.Invoke(

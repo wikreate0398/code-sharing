@@ -5,6 +5,7 @@ import (
 	"wikreate/fimex/internal/domain/services/catalog/best_price_service"
 	"wikreate/fimex/internal/domain/services/catalog/product_service"
 	"wikreate/fimex/internal/domain/services/payment_history_service"
+	"wikreate/fimex/internal/domain/services/targeting"
 	"wikreate/fimex/internal/infrastructure/storage/repository/product_repository"
 	"wikreate/fimex/internal/infrastructure/storage/repository/user_repository"
 )
@@ -13,6 +14,7 @@ var _ product_service.ProductCharRepository = (*ProductCharRepositoryImpl)(nil)
 var _ product_service.ProductRepository = (*product_repository.ProductRepositoryImpl)(nil)
 var _ payment_history_service.UserRepository = (*user_repository.UserRepositoryImpl)(nil)
 var _ best_price_service.ProviderProductRepository = (*ProviderProductRepositoryImpl)(nil)
+var _ targeting.ProviderProductRepository = (*ProviderProductRepositoryImpl)(nil)
 
 var Module = fx.Module("repository",
 	fx.Provide(
@@ -24,6 +26,7 @@ var Module = fx.Module("repository",
 		fx.Annotate(
 			user_repository.NewUserRepository,
 			fx.As(new(payment_history_service.UserRepository)),
+			fx.As(new(targeting.UserRepository)),
 		),
 
 		fx.Annotate(
@@ -34,11 +37,13 @@ var Module = fx.Module("repository",
 		fx.Annotate(
 			product_repository.NewProductRepository,
 			fx.As(new(product_service.ProductRepository)),
+			fx.As(new(targeting.ProductRepository)),
 		),
 
 		fx.Annotate(
 			NewProviderProductRepository,
 			fx.As(new(best_price_service.ProviderProductRepository)),
+			fx.As(new(targeting.ProviderProductRepository)),
 		),
 
 		fx.Annotate(
@@ -49,6 +54,7 @@ var Module = fx.Module("repository",
 		fx.Annotate(
 			NewCargoRepository,
 			fx.As(new(best_price_service.CargoRepository)),
+			fx.As(new(targeting.CargoRepository)),
 		),
 
 		fx.Annotate(

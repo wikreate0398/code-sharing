@@ -11,5 +11,5 @@ type ProductCharQueryDto struct {
 	Name      string `db:"name"`
 	UseInName bool   `db:"use_product_name"`
 	UseEmoji  bool   `db:"add_emodji"`
-	Position  string `db:"position"`
+	Position  int    `db:"position"`
 }

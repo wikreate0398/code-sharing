@@ -1,4 +1,4 @@
-package rbbtmq
+package rbmq_consumers
 
 import (
 	"context"
@@ -7,14 +7,14 @@ import (
 )
 
 type GenerateBestProductConsumer struct {
-	service BestProductService
+	service BestPriceService
 }
 
-func NewGenerateBestProductConsumer(service BestProductService) *GenerateBestProductConsumer {
+func NewGenerateBestProductConsumer(service BestPriceService) *GenerateBestProductConsumer {
 	return &GenerateBestProductConsumer{service}
 }
 
-func (r *GenerateBestProductConsumer) Handle(ctx context.Context, result []byte) error {
+func (r *GenerateBestProductConsumer) Consume(ctx context.Context, result []byte) error {
 	if r.isEmpty(result) {
 		return r.service.GeneratePricesForAllStockProducts(ctx)
 	}

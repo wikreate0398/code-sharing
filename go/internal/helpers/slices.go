@@ -1,5 +1,7 @@
 package helpers
 
+import "strconv"
+
 func SliceIntValToString(slice []int) []string {
 	var stringSlice []string
 	for i := 0; i < len(slice); i++ {
@@ -7,6 +9,16 @@ func SliceIntValToString(slice []int) []string {
 	}
 
 	return stringSlice
+}
+
+func SliceStrValToInt(slice []string) []int {
+	data := make([]int, len(slice))
+	for i := 0; i < len(slice); i++ {
+		id, _ := strconv.Atoi(slice[i])
+		data[i] = id
+	}
+
+	return data
 }
 
 func SliceIntValToInterface(slice []int) []interface{} {

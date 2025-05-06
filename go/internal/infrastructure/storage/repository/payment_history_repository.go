@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"wikreate/fimex/internal/domain/entities/payment/payment_history_entity"
 	"wikreate/fimex/internal/domain/interfaces"
 	"wikreate/fimex/internal/domain/structure/dto/payment_dto"
@@ -28,14 +29,10 @@ func (repo PaymentHistoryRepositoryImpl) SelectUserHistory(
 	`, id_user, cashbox.String())
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[SelectUserHistory] db.QueryCtx err: %w", err)
 	}
 
-	defer func() {
-		if err := rows.Close(); err != nil {
-			panic(err)
-		}
-	}()
+	defer rows.Close()
 
 	var history []payment_history_entity.PaymentHistory
 	for rows.Next() {
@@ -49,7 +46,7 @@ func (repo PaymentHistoryRepositoryImpl) SelectUserHistory(
 		err := rows.Scan(&id, &idUser, &increase, &sum, &ballance, &date)
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("[SelectUserHistory] rows.Scan err: %w", err)
 		}
 
 		dto := payment_dto.PaymentHistoryQueryDto{
@@ -65,7 +62,7 @@ func (repo PaymentHistoryRepositoryImpl) SelectUserHistory(
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[SelectUserHistory] rows.Err: %w", err)
 	}
 
 	return history, nil
@@ -73,5 +70,10 @@ func (repo PaymentHistoryRepositoryImpl) SelectUserHistory(
 
 func (p PaymentHistoryRepositoryImpl) BatchUpdate(ctx context.Context, arg interface{}, identifier string) error {
 	_, err := p.db.BatchUpdateCtx(ctx, "payment_history", identifier, arg)
-	return err
+
+	if err != nil {
+		return fmt.Errorf("[PaymentHistoryRepositoryImpl.BatchUpdate] db.BatchUpdateCtx err: %w", err)
+	}
+
+	return nil
 }

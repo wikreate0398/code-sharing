@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"wikreate/fimex/internal/domain/entities/wholesale"
 	"wikreate/fimex/internal/domain/interfaces"
 )
@@ -18,7 +19,7 @@ func (p WholesaleRepositoryImpl) Get() ([]wholesale.Wholesale, error) {
 	rows, err := p.db.Query(`select id, name from wholesale_types where type = 'default' and deleted_at is null`)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[WholesaleRepositoryImpl.Get] db.Query: %w", err)
 	}
 
 	defer rows.Close()
@@ -29,7 +30,7 @@ func (p WholesaleRepositoryImpl) Get() ([]wholesale.Wholesale, error) {
 		var name string
 
 		if err := rows.Scan(&id, &name); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("[WholesaleRepositoryImpl.Get] db.Scan: %w", err)
 		}
 
 		result = append(result, wholesale.NewWholesale(id, name))

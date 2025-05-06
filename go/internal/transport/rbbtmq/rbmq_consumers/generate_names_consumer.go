@@ -1,4 +1,4 @@
-package rbbtmq
+package rbmq_consumers
 
 import (
 	"context"
@@ -14,13 +14,11 @@ func NewGenerateProductsNamesConsumer(service ProductService) *GenerateNamesCons
 	return &GenerateNamesConsumer{service}
 }
 
-func (r *GenerateNamesConsumer) Handle(ctx context.Context, result []byte) error {
-	var input = new(catalog_dto.GenerateNamesInputDto)
+func (r *GenerateNamesConsumer) Consume(ctx context.Context, result []byte) error {
+	var input = catalog_dto.GenerateNamesInputDto{}
 	if err := json.Unmarshal(result, &input); err != nil {
 		return err
 	}
 
-	r.service.GenerateNames(ctx, input)
-
-	return nil
+	return r.service.GenerateNames(ctx, input)
 }

@@ -11,8 +11,6 @@ import (
 type preorderNotificationPublisher struct {
 	redis       *redis.Client
 	idsProducts map[int]struct{}
-
-	items []preorderNotificationDto
 }
 
 func newPreOrderNotification(
@@ -31,14 +29,18 @@ func newPreOrderNotification(
 	return preorderNotificationPublisher{
 		redis:       redis,
 		idsProducts: idsProducts,
-		items:       make([]preorderNotificationDto, 0),
 	}
 }
 
-func (s *preorderNotificationPublisher) appendRecords(records []stock_dto.SaleProductStoreDto) {
-	for _, record := range records {
-		if _, exist := s.idsProducts[record.IdProduct]; exist == true && record.IsNew {
-			s.items = append(s.items, preorderNotificationDto{
+func (s *preorderNotificationPublisher) publish(
+	ctx context.Context,
+	upsertRecords []stock_dto.SaleProductStoreDto,
+) {
+	items := make([]preorderNotificationDto, 0)
+
+	for _, record := range upsertRecords {
+		if _, exist := s.idsProducts[record.IdProduct]; exist && record.IsNew {
+			items = append(items, preorderNotificationDto{
 				IDProduct:        record.IdProduct,
 				IDWholesale:      record.IdWholesale,
 				IDPurchase:       record.IdPurchase,
@@ -47,11 +49,9 @@ func (s *preorderNotificationPublisher) appendRecords(records []stock_dto.SalePr
 			})
 		}
 	}
-}
 
-func (s *preorderNotificationPublisher) publish(ctx context.Context) {
-	if len(s.items) > 0 {
-		str, _ := helpers.StructToJson(s.items)
+	if len(items) > 0 {
+		str, _ := helpers.StructToJson(items)
 		s.redis.Publish(ctx, "stock-notification-channel", string(str))
 	}
 }

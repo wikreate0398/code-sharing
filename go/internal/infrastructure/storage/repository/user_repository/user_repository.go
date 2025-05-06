@@ -12,12 +12,25 @@ type UserRepositoryImpl struct {
 	db interfaces.DB
 }
 
-func NewUserRepository(db interfaces.DB) *UserRepositoryImpl {
-	return &UserRepositoryImpl{db: db}
+func NewUserRepository(db interfaces.DB) UserRepositoryImpl {
+	return UserRepositoryImpl{db: db}
 }
 
-func (repo UserRepositoryImpl) SelectWhitchHasPaymentHistory(ctx context.Context, id_user int, cashbox payment_vo.Cashbox) ([]user_dto.UserQueryDto, error) {
-	var input []user_dto.UserQueryDto
+func (repo UserRepositoryImpl) SelectUserName(ctx context.Context, id int) (string, error) {
+	type res struct {
+		Name string `db:"name"`
+	}
+
+	var user res
+	if err := repo.db.GetCtx(ctx, &user, "select name from users where id = ?", id); err != nil {
+		return "", fmt.Errorf("cannot select user name err: %w", err)
+	}
+
+	return user.Name, nil
+}
+
+func (repo UserRepositoryImpl) SelectWhitchHasPaymentHistory(ctx context.Context, id_user int, cashbox payment_vo.Cashbox) ([]user_dto.UserDto, error) {
+	var input []user_dto.UserDto
 
 	args := []interface{}{}
 
@@ -41,7 +54,7 @@ func (repo UserRepositoryImpl) SelectWhitchHasPaymentHistory(ctx context.Context
 	`, userCond, cashboxCond)
 
 	if err := repo.db.SelectCtx(ctx, &input, query, args...); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[SelectWhitchHasPaymentHistory] SelectCtx err: %w", err)
 	}
 
 	return input, nil

@@ -1,4 +1,4 @@
-package rbbtmq
+package rbmq_consumers
 
 import (
 	"context"
@@ -7,15 +7,15 @@ import (
 )
 
 type PaymentHistoryService interface {
-	RecalcBallances(ctx context.Context, payload *payment_dto.RecalcBallanceInputDto)
+	RecalcBallances(ctx context.Context, payload payment_dto.RecalcBallanceInputDto) error
 }
 
 type ProductService interface {
-	GenerateNames(ctx context.Context, payload *catalog_dto.GenerateNamesInputDto)
-	Sort(ctx context.Context)
+	GenerateNames(ctx context.Context, payload catalog_dto.GenerateNamesInputDto) error
+	Sort(ctx context.Context) error
 }
 
-type BestProductService interface {
+type BestPriceService interface {
 	GeneratePricesForSelectedStockProducts(
 		ctx context.Context,
 		idPurchase int,

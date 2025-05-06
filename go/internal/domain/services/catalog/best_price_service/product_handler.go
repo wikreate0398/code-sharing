@@ -12,15 +12,15 @@ import (
 type saleProductsHandler struct {
 	saleProductRepo SaleProductRepository
 
-	global               bool
-	percents             PercentsMapKey
-	cargo                CargosMapKey
-	implementations      []country_impl.CountryImplementation
-	wholesales           []wholesale.Wholesale
-	saleProducts         map[saleProductMapKeyDto][]sale_product.SaleProduct
-	records              []stock_dto.SaleProductStoreDto
-	topPrice             topPricePublisher
-	preorderNotification preorderNotificationPublisher
+	percents        PercentsMapKey
+	cargo           CargosMapKey
+	implementations []country_impl.CountryImplementation
+	wholesales      []wholesale.Wholesale
+	saleProducts    map[saleProductMapKeyDto][]sale_product.SaleProduct
+	upsertRecords   []stock_dto.SaleProductStoreDto
+	deletedRecords  []sale_product.SaleProduct
+
+	publisherManager publisherManager
 }
 
 func (s *saleProductsHandler) handle(ctx context.Context, providerProducts []provider_product.ProviderProduct) error {
@@ -46,13 +46,9 @@ func (s *saleProductsHandler) handle(ctx context.Context, providerProducts []pro
 		if err := s.deleteNotRelevantProducts(ctx); err != nil {
 			return err
 		}
-
-		s.topPrice.appendRecords(s.records)
-		s.preorderNotification.appendRecords(s.records)
 	}
 
-	s.topPrice.publish(ctx)
-	s.preorderNotification.publish(ctx)
+	s.publisherManager.publish(ctx, s.upsertRecords, s.deletedRecords)
 
 	return nil
 }
@@ -82,7 +78,7 @@ func (s *saleProductsHandler) manageProduct(
 
 			preparedData := newUpsertPreparation(implementation, whs, totalQty, bestPrice, s.saleProducts)
 
-			s.records = append(s.records, preparedData.prepare())
+			s.upsertRecords = append(s.upsertRecords, preparedData.prepare())
 		}
 	}
 
@@ -92,7 +88,7 @@ func (s *saleProductsHandler) manageProduct(
 func (s *saleProductsHandler) batchCreate(ctx context.Context) error {
 	createRecords := make([]stock_dto.SaleProductStoreDto, 0)
 
-	for _, record := range s.records {
+	for _, record := range s.upsertRecords {
 		if record.IsNew {
 			createRecords = append(createRecords, record)
 		}
@@ -108,7 +104,7 @@ func (s *saleProductsHandler) batchCreate(ctx context.Context) error {
 func (s *saleProductsHandler) batchUpdate(ctx context.Context) error {
 	updateRecords := make([]stock_dto.SaleProductStoreDto, 0)
 
-	for _, record := range s.records {
+	for _, record := range s.upsertRecords {
 		if record.NeedUpdate {
 			updateRecords = append(updateRecords, record)
 		}
@@ -123,19 +119,18 @@ func (s *saleProductsHandler) batchUpdate(ctx context.Context) error {
 
 func (s *saleProductsHandler) deleteNotRelevantProducts(ctx context.Context) error {
 	unToucheableIds := make(map[int]struct{})
-	for _, record := range s.records {
+	for _, record := range s.upsertRecords {
 		if record.Id > 0 {
 			unToucheableIds[record.Id] = struct{}{}
 		}
 	}
 
 	deletedIds := make([]int, 0)
-
 	for _, items := range s.saleProducts {
 		for _, item := range items {
 			if _, ok := unToucheableIds[item.Id()]; !ok {
 				deletedIds = append(deletedIds, item.Id())
-				s.topPrice.appendDeletedRecord(item)
+				s.deletedRecords = append(s.deletedRecords, item)
 			}
 		}
 	}

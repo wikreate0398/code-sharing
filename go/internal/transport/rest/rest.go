@@ -3,6 +3,7 @@ package rest
 import (
 	"context"
 	"go.uber.org/fx"
+	"wikreate/fimex/internal/domain/interfaces"
 	"wikreate/fimex/internal/transport/rest/server"
 )
 
@@ -11,6 +12,7 @@ type ServerParams struct {
 
 	Server *server.Server
 	Lc     fx.Lifecycle
+	Logs   interfaces.Logger
 }
 
 func handleServer(p ServerParams) {

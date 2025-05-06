@@ -4,10 +4,27 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"time"
 )
+
+//func GetRootPath(a string) string {
+//	_, b, _, _ := runtime.Caller(0)
+//	return filepath.Join(filepath.Dir(b), a)
+//}
+
+func GetRootPath() string {
+	envRootPath := os.Getenv("ROOT_PATH")
+	if envRootPath != "" {
+		return envRootPath
+	}
+
+	root, _ := os.Getwd()
+	return filepath.Join(root, ".")
+}
 
 func IntToString(v int) string {
 	return strconv.Itoa(v)
@@ -40,7 +57,6 @@ func prettyprint(b []byte) ([]byte, error) {
 func StructToJson(entity interface{}) ([]byte, error) {
 	b, err := json.Marshal(entity)
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 	return prettyprint(b)

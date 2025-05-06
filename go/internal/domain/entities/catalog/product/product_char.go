@@ -10,7 +10,7 @@ type ProductChar struct {
 	name      string
 	useInName bool
 	useEmoji  bool
-	position  string
+	position  int
 }
 
 func NewProductChar(dto catalog_dto.ProductCharQueryDto) *ProductChar {

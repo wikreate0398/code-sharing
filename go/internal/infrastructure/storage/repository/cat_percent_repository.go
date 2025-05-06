@@ -60,11 +60,11 @@ func (p CategoryPercentRepositoryImpl) Get(params catalog_dto.CategoryPercentRep
 	query, args, err := sqlx.In(query, args...)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[CategoryPercentRepositoryImpl.get] sqlx.In err: %w", err)
 	}
 
 	if err := p.db.Select(&result, query, args...); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[CategoryPercentRepositoryImpl.get] db.Select err: %w", err)
 	}
 
 	return result, nil

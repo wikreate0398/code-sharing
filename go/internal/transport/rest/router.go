@@ -13,16 +13,23 @@ type RoutesParams struct {
 	Logger interfaces.Logger
 	Router *gin.Engine
 
-	MainController *controllers.MainController
+	MainController  *controllers.MainController
+	StockController *controllers.StockController
 }
 
 func newRouter() *gin.Engine {
-	return gin.Default()
+	return gin.New()
 }
 
 func registerRoutes(p RoutesParams) {
 	v1 := p.Router.Group("/v1")
 	{
-		v1.GET("/", p.MainController.Home)
+		v1.POST("/best-product", p.MainController.BestProduct)
+
+		v2 := v1.Group("/stock")
+		{
+			v2.POST("/upsert-qty", p.StockController.UpsertStockQty)
+			v2.POST("/update-price", p.StockController.UpdateStockPrice)
+		}
 	}
 }

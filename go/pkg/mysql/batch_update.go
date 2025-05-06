@@ -44,15 +44,15 @@ func (b *BatchUpdate) Query() (string, error) {
 
 			var val = row.Field(i).Interface()
 
-			switch val.(type) {
+			switch v := val.(type) {
+			case time.Time:
+				val = v.Format("2006-01-02 15:04:05")
 			case bool:
 				if val == true {
 					val = 1
 				} else {
 					val = 0
 				}
-			case time.Time:
-				val = val.(time.Time).Format("2006-01-02 15:04:05")
 			default:
 				//
 			}

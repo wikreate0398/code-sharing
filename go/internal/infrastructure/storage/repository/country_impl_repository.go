@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"wikreate/fimex/internal/domain/entities/country_impl"
 	"wikreate/fimex/internal/domain/entities/currency"
 	"wikreate/fimex/internal/domain/interfaces"
@@ -29,7 +30,7 @@ func (p CountryImplRepositoryImpl) Get() ([]country_impl.CountryImplementation, 
 	`)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[CountryImplRepositoryImpl.Get] db.Query err: %w", err)
 	}
 
 	defer rows.Close()
@@ -40,7 +41,7 @@ func (p CountryImplRepositoryImpl) Get() ([]country_impl.CountryImplementation, 
 		var currencyDto currency_dto.CurrencyQueryDto
 
 		if err := rows.Scan(&implDto.ID, &currencyDto.ID, &currencyDto.ISO, &currencyDto.Rate); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("[CountryImplRepositoryImpl.Get] rows.Scan err: %w", err)
 		}
 
 		var implEntity = country_impl.NewCountryImplementation(implDto)
