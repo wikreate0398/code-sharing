@@ -11,17 +11,7 @@ import (
 	"wikreate/fimex/internal/transport/sockets"
 )
 
-func initTime() {
-	loc, err := time.LoadLocation("Europe/Chisinau") // Задаем нужный часовой пояс
-	if err != nil {
-		panic(err)
-	}
-	time.Local = loc // Устанавливаем глобально
-}
-
 func Create() {
-	initTime()
-
 	fx.New(
 		infrastructure.Module,
 		domain_services.Module,
